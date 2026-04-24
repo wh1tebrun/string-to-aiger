@@ -90,6 +90,9 @@ hello | world
 These examples can be placed inside files under `examples/`
 and executed through `main.py`.
 
+The current demo setup reads one example file at a time through:
+`examples/test1.txt`
+
 ---
 
 ## Current encoding approach
