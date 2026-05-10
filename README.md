@@ -30,7 +30,7 @@ The goal is to translate string and regular-expression constraints into AIGER ci
 The long-term idea is:
 
 ```text
-string / r```x problem
+string / regex problem
 -> logical or automata-based representation
 -> circuit
 -> AIGER
@@ -149,7 +149,7 @@ The implemented milestone 2 pipeline is:
 
 ```text
 regular expression
--> r```x AST
+-> regex AST
 -> NFA
 -> bounded combinational logical expression
 -> netlist
@@ -165,9 +165,9 @@ a*
 (a|ba)*
 ```
 
-## R```x AST
+## Regex AST
 
-For milestone 2, a separate r```x AST representation was introduced.
+For milestone 2, a separate regex AST representation was introduced.
 
 The main AST nodes are:
 
@@ -198,7 +198,7 @@ This separates the structure of the regular expression from the later compilatio
 
 ## NFA construction
 
-After parsing, the r```x AST is translated into an NFA.
+After parsing, the regex AST is translated into an NFA.
 
 The NFA representation contains:
 
@@ -265,7 +265,7 @@ The pipeline is:
 
 ```text
 regular expression
--> r```x AST
+-> regex AST
 -> NFA
 -> sequential circuit
 -> latch-based ASCII AIGER
@@ -294,15 +294,15 @@ This backend produces AIGER files with L > 0, meaning that latches are present.
 
 The following components have been implemented for milestone 2:
 
-r```x_ast.py: r```x AST node definitions
-r```x_pretty.py: readable printing of r```x ASTs
-r```x_parser.py: parser for a small r```x fragment
+regex_ast.py: regex AST node definitions
+regex_pretty.py: readable printing of regex ASTs
+regex_parser.py: parser for a small regex fragment
 nfa.py: NFA data structure
-nfa_builder.py: construction of an NFA from a r```x AST
+nfa_builder.py: construction of an NFA from a regex AST
 nfa_evaluator.py: direct NFA evaluation on candidate strings
 bounded_nfa_encoding.py: bounded combinational encoding of an NFA
-r```x_to_aiger.py: high-level wrapper from r```x pattern and bound to ASCII AIGER
-tests_r```x.py: tests for r```x parsing, NFA evaluation, bounded encoding, and AIGER output
+regex_to_aiger.py: high-level wrapper from regex pattern and bound to ASCII AIGER
+tests_regex.py: tests for regex parsing, NFA evaluation, bounded encoding, and AIGER output
 sequential_circuit.py: intermediate representation for sequential circuits
 sequential_aiger_writer.py: ASCII AIGER writer with latch support
 sequential_simulator.py: Python simulator for sequential circuits
@@ -320,10 +320,10 @@ To run the bounded NFA demo:
 python bounded_nfa_demo.py
 ```
 
-To compile a r```x directly to bounded AIGER:
+To compile a regex directly to bounded AIGER:
 
 ```bash
-python r```x_to_aiger_demo.py
+python regex_to_aiger_demo.py
 ```
 
 To run the manual sequential a* demo:
@@ -352,10 +352,10 @@ To run the milestone 1 tests:
 python tests.py
 ```
 
-To run the r```x and bounded encoding tests:
+To run the regex and bounded encoding tests:
 
 ```bash
-python tests_r```x.py
+python tests_regex.py
 ```
 
 To run the sequential backend tests:
