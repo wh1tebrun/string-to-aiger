@@ -1,9 +1,12 @@
-from circuit import BoolConst, LengthIs, CharAtIs, And, Or, Expr
+from circuit import BoolConst, InputVar, LengthIs, CharAtIs, And, Or, Expr
 
 
 def pretty(expr: Expr) -> str:
     if isinstance(expr, BoolConst):
         return "true" if expr.value else "false"
+
+    if isinstance(expr, InputVar):
+        return expr.name
 
     if isinstance(expr, LengthIs):
         return f"(len == {expr.value})"

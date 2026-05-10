@@ -1,4 +1,4 @@
-from circuit import BoolConst, LengthIs, CharAtIs, And, Or, Expr
+from circuit import BoolConst, InputVar, LengthIs, CharAtIs, And, Or, Expr
 from netlist import Input, Const, AndGate, OrGate, Node
 
 
@@ -18,6 +18,15 @@ class NetlistBuilder:
     def compile_expr(self, expr: Expr) -> int:
         if isinstance(expr, BoolConst):
             return self.new_node(Const(expr.value))
+        
+        if isinstance(expr, InputVar):
+            name = expr.name
+            if name in self.input_cache:
+                return self.input_cache[name]
+            
+            node_id = self.new_node(Input(name))
+            self.input_cache[name] = node_id
+            return node_id
 
         if isinstance(expr, LengthIs):
             name = f"len_is_{expr.value}"
