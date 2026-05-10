@@ -1,111 +1,76 @@
 # string-to-aiger
 
-Prototype compiler from simple string disjunctions to ASCII AIGER.
+Prototype compiler from simple string and regular-expression fragments to ASCII AIGER.
 
----
+The project started with fixed-string disjunctions such as abba | abb and was then extended with Kleene star support using automata-based encodings.
 
-## Supported fragment
+## Current supported fragments
 
-At the current milestone, the project supports:
-
-* disjunction of concrete strings using `|`
-* implicit concatenation inside concrete strings
-
-Example input:
+Milestone 1 supports disjunctions of concrete fixed strings:
 
 ```text
 abba | abb | abbreviation
 ```
 
----
-
-## Current pipeline
+Milestone 2 extends this with a small regular-expression fragment including:
 
 ```text
-expression -> parser -> model -> logical expression -> netlist -> AIGER
+a*
+(ab)*
+(a|b)*
+(a|ba)*
 ```
 
----
+The project currently does not support conjunction &.
 
-## Files
+## High-level goal
 
-* `parser.py`: parses a disjunction of concrete strings
-* `model.py`: internal matcher representation
-* `compiler.py`: compiles matchers into logical expressions
-* `circuit.py`: logical expression data structures
-* `evaluator.py`: evaluates compiled expressions on candidate strings
-* `netlist_builder.py`: converts logical expressions into a gate-level netlist
-* `aiger_writer.py`: exports the netlist into ASCII AIGER
-* `aiger.py`: high-level wrapper for compiling expressions to AIGER
-* `main.py`: demo entry point
-* `tests.py`: basic regression tests
+The goal is to translate string and regular-expression constraints into AIGER circuits.
 
----
-
-## Run
-
-```bash
-python main.py
-```
-
----
-
-## Tests
-
-```bash
-python tests.py
-```
-
----
-
-## Limitations
-
-This is milestone 1 only. The implementation currently does not support:
-
-* Kleene star `*`
-* conjunction `&`
-* parentheses
-* full regular-expression parsing
-
----
-
-## Example output
-
-The tool generates an ASCII AIGER file:
+The long-term idea is:
 
 ```text
-output.aag
+string / r```x problem
+-> logical or automata-based representation
+-> circuit
+-> AIGER
+-> SAT / model checking tools
 ```
 
----
+This makes it possible to represent string constraints in a hardware verification format.
 
-## Example expressions
+## Milestone 1 pipeline
+
+For fixed-string disjunctions, the pipeline is:
 
 ```text
-abba | abb
-abc | ab
-hello | world
+expression
+-> parser
+-> model
+-> logical expression
+-> netlist
+-> ASCII AIGER
 ```
 
-These examples can be placed inside files under `examples/`
-and executed through `main.py`.
-
-The current demo setup reads one example file at a time through:
-`examples/test1.txt`
-
----
-
-## Current encoding approach
-
-For milestone 1, the supported input is a disjunction of fixed concrete strings.
-
-Example:
+Example input:
 
 ```text
 abba | abb
 ```
 
-The compiler translates each concrete string into a conjunction of constraints:
+This expression represents the language:
+
+```text
+L = {"abba", "abb"}
+```
+
+## Milestone 1 encoding approach
+
+For milestone 1, the input is a disjunction of fixed concrete strings.
+
+The compiler translates each concrete string into a conjunction of constraints.
+
+For example, abba becomes:
 
 ```text
 len == 4
@@ -119,62 +84,68 @@ A disjunction of strings is then encoded as an OR of these conjunctions.
 
 This is sufficient for black/white lists, because all accepted strings are known and have fixed length.
 
----
+## Milestone 1 files
 
-## Current limitation
+parser.py: parses a disjunction of concrete strings
+model.py: internal matcher representation
+matcher.py: directly evaluates the matcher model on candidate strings
+compiler.py: compiles matchers into logical expressions
+circuit.py: logical expression data structures
+pretty.py: readable printing of logical expressions
+evaluator.py: evaluates compiled expressions on candidate strings
+netlist.py: gate-level netlist data structures
+netlist_builder.py: converts logical expressions into a gate-level netlist
+netlist_pretty.py: readable printing of netlists
+aiger_writer.py: exports the netlist into ASCII AIGER
+aiger.py: high-level wrapper for compiling expressions to AIGER
+main.py: demo entry point
+tests.py: basic regression tests
 
-The current implementation is intentionally constraint-based and fixed-length.
+## Milestone 1 demo
 
-It does not yet implement a full regular-expression AST or automaton construction. Therefore, expressions such as:
+To run the fixed-string disjunction demo:
 
-```text
-a*
-(a | ba)*
+```bash
+python main.py
 ```
 
-cannot be represented correctly with the current model.
-
-Kleene star requires a state-based representation, such as an NFA/DFA with transitions and loops. This will be addressed in the next milestone.
-
----
-
-## Plan for milestone 2
-
-For Kleene star, the architecture will be extended as follows:
+The current demo reads one selected example file:
 
 ```text
-regular expression
--> AST
--> NFA/DFA
--> transition system
--> AIGER
+examples/test1.txt
 ```
 
-This means that milestone 2 will introduce a proper expression representation with nodes such as:
+and writes the generated AIGER circuit to:
 
 ```text
-Char
-Concat
-Union
-Star
+output.aag
 ```
 
-and then translate this representation into a state-based circuit.
+## Milestone 1 tests
 
----
+To run the milestone 1 tests:
 
-## Future work
+```bash
+python tests.py
+```
 
-* support for Kleene star
-* support for conjunction
-* proper expression parser
-* improved netlist sharing and optimization
+## Example expressions
+
+Example expressions can be placed inside files under examples/.
+
+```text
+abba | abb
+abc | ab
+hello | world
+```
+
+At the current milestone 1 demo setup, main.py reads one selected example file at a time.
 
 ## Milestone 2: Kleene star support
 
 Milestone 2 extends the project from fixed-string disjunctions toward regular expressions with Kleene star.
 
-The currently implemented Milestone 2 pipeline is:
+The implemented milestone 2 pipeline is:
 
 ```text
 regular expression
@@ -196,7 +167,7 @@ a*
 
 ## R```x AST
 
-For Milestone 2, a separate r```x AST representation was introduced.
+For milestone 2, a separate r```x AST representation was introduced.
 
 The main AST nodes are:
 
@@ -238,7 +209,7 @@ epsilon transitions
 
 Epsilon transitions are represented internally with None.
 
-For example, Kleene star introduces loop and epsilon transitions, allowing expressions such as:
+For example, Kleene star introduces loops and epsilon transitions, allowing expressions such as:
 
 ```text
 a*
@@ -249,7 +220,7 @@ to accept repeated occurrences, including the empty string.
 
 ## Bounded combinational encoding
 
-For the current Milestone 2 implementation, the NFA is compiled using bounded combinational encoding.
+The first milestone 2 backend uses bounded combinational encoding.
 
 This means that a fixed bound is chosen, for example:
 
@@ -282,11 +253,46 @@ but rejects:
 
 because the word length exceeds the chosen bound.
 
-This encoding is combinational and currently does not use AIGER latches.
+This encoding is combinational and does not require AIGER latches.
 
-## Current Milestone 2 status
+## Sequential latch-based backend
 
-The following components have been implemented:
+In addition to the bounded combinational backend, an experimental sequential backend was added.
+
+This backend translates an NFA into a sequential circuit with latches.
+
+The pipeline is:
+
+```text
+regular expression
+-> r```x AST
+-> NFA
+-> sequential circuit
+-> latch-based ASCII AIGER
+```
+
+The sequential circuit uses latches to store the current active NFA states.
+
+The input protocol is stream-based:
+
+in each normal step, one symbol input such as is_a or is_b is true
+in the final step, end is true
+the output accept is true iff end is true and an accepting state is active
+
+For example, the word aaa for the expression a* is represented as:
+
+```text
+step 1: is_a = true, end = false
+step 2: is_a = true, end = false
+step 3: is_a = true, end = false
+step 4: is_a = false, end = true
+```
+
+This backend produces AIGER files with L > 0, meaning that latches are present.
+
+## Milestone 2 files
+
+The following components have been implemented for milestone 2:
 
 r```x_ast.py: r```x AST node definitions
 r```x_pretty.py: readable printing of r```x ASTs
@@ -297,29 +303,16 @@ nfa_evaluator.py: direct NFA evaluation on candidate strings
 bounded_nfa_encoding.py: bounded combinational encoding of an NFA
 r```x_to_aiger.py: high-level wrapper from r```x pattern and bound to ASCII AIGER
 tests_r```x.py: tests for r```x parsing, NFA evaluation, bounded encoding, and AIGER output
+sequential_circuit.py: intermediate representation for sequential circuits
+sequential_aiger_writer.py: ASCII AIGER writer with latch support
+sequential_simulator.py: Python simulator for sequential circuits
+sequential_astar_demo.py: manual sequential prototype for a*
+sequential_astar_sim_demo.py: simulation demo for the manual a* circuit
+nfa_to_sequential.py: generic NFA to sequential circuit translation
+nfa_to_sequential_demo.py: demo for generic sequential NFA encoding
+tests_sequential.py: tests for the sequential backend
 
-## Milestone 2 limitations
-
-The current Milestone 2 implementation is still bounded.
-
-This means that the generated circuit only reasons about candidate strings up to a fixed maximum length.
-
-The implementation currently does not yet use sequential AIGER with latches.
-
-A future version can extend the backend as follows:
-
-```text
-r```x
--> AST
--> NFA
--> sequential transition system
--> latches
--> AIGER
-```
-
-This would allow the automaton state to be represented directly in the circuit instead of being unrolled up to a fixed bound.
-
-## Run Milestone 2 demos
+## Run milestone 2 demos
 
 To run the bounded NFA demo:
 
@@ -327,30 +320,121 @@ To run the bounded NFA demo:
 python bounded_nfa_demo.py
 ```
 
-To compile a r```x directly to AIGER:
+To compile a r```x directly to bounded AIGER:
 
 ```bash
 python r```x_to_aiger_demo.py
 ```
 
-To run the r```x-related tests:
+To run the manual sequential a* demo:
+
+```bash
+python sequential_astar_demo.py
+```
+
+To simulate the manual sequential a* circuit:
+
+```bash
+python sequential_astar_sim_demo.py
+```
+
+To run the generic NFA-to-sequential demo:
+
+```bash
+python nfa_to_sequential_demo.py
+```
+
+## Tests
+
+To run the milestone 1 tests:
+
+```bash
+python tests.py
+```
+
+To run the r```x and bounded encoding tests:
 
 ```bash
 python tests_r```x.py
 ```
 
-## Milestone 2 summary
+To run the sequential backend tests:
 
-Milestone 2 introduces Kleene star support by moving from fixed-string constraints to an automata-based representation.
+```bash
+python tests_sequential.py
+```
 
-The important conceptual change is:
+## Current status
+
+The current implementation supports three levels:
 
 ```text
 Milestone 1:
-fixed strings -> logical constraints -> AIGER
+fixed strings
+-> logical constraints
+-> netlist
+-> combinational AIGER
 
-Milestone 2:
-regular expressions -> AST -> NFA -> bounded logical encoding -> AIGER
+Milestone 2A:
+regular expressions with Kleene star
+-> AST
+-> NFA
+-> bounded combinational AIGER
+
+Milestone 2B prototype:
+regular expressions with Kleene star
+-> AST
+-> NFA
+-> sequential circuit
+-> latch-based AIGER
 ```
 
-The current implementation uses bounded combinational encoding as an intermediate step before moving to a possible sequential/latch-based AIGER encoding later.
+## Current limitations
+
+The bounded backend only reasons about candidate strings up to a fixed maximum length.
+
+The sequential backend is still experimental and currently uses a simple stream-based input protocol.
+
+The project currently does not support:
+
+conjunction &
+full regular-expression syntax
+character classes
+escape handling
+minimization or optimization of automata
+certified AIGER semantic checking with external tools
+
+## Future work
+
+Possible future improvements include:
+
+support for conjunction
+richer regular-expression parser
+better alphabet handling
+improved AIGER optimization
+external validation with AIGER tools
+comparison between bounded and sequential encodings
+integration with hardware model checkers
+
+## Summary
+
+The project implements a step-by-step compiler pipeline from string constraints to AIGER.
+
+The conceptual progression is:
+
+```text
+Milestone 1:
+fixed string disjunctions
+-> logical constraints
+-> AIGER
+
+Milestone 2:
+regular expressions with Kleene star
+-> AST
+-> NFA
+-> bounded or sequential AIGER
+```
+
+The bounded backend is useful as a simpler intermediate encoding.
+
+The sequential backend introduces latches and moves the project closer to a hardware model checking representation of automata.
