@@ -1,10 +1,15 @@
-from parser import parse
-from model import build_model
-from matcher import matches_or
-from compiler import compile_or, compile_exact_string
-from evaluator import evaluate
-from netlist_builder import NetlistBuilder
-from aiger import compile_expr_to_aiger
+import os
+import sys
+
+sys.path.append(os.path.dirname(os.path.dirname(__file__)))
+
+from parser import parse  # noqa: E402
+from model import build_model  # noqa: E402
+from matcher import matches_or  # noqa: E402
+from compiler import compile_or, compile_exact_string  # noqa: E402
+from evaluator import evaluate  # noqa: E402
+from netlist_builder import NetlistBuilder  # noqa: E402
+from aiger import compile_expr_to_aiger  # noqa: E402
 
 
 def test_parser_basic():

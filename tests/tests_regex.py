@@ -1,10 +1,15 @@
-from regex_parser import parse_regex
-from regex_pretty import pretty_regex
-from nfa_builder import build_nfa
-from nfa_evaluator import accepts
-from bounded_nfa_encoding import compile_nfa_bounded
-from evaluator import evaluate
-from regex_to_aiger import compile_regex_to_aiger
+import os
+import sys
+
+sys.path.append(os.path.dirname(os.path.dirname(__file__)))
+
+from regex_parser import parse_regex  # noqa: E402
+from regex_pretty import pretty_regex  # noqa: E402
+from nfa_builder import build_nfa  # noqa: E402
+from nfa_evaluator import accepts  # noqa: E402
+from bounded_nfa_encoding import compile_nfa_bounded  # noqa: E402
+from evaluator import evaluate  # noqa: E402
+from regex_to_aiger import compile_regex_to_aiger  # noqa: E402
 
 
 def test_regex_parser_basic():

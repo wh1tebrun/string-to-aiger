@@ -1,8 +1,13 @@
-from regex_parser import parse_regex
-from nfa_builder import build_nfa
-from nfa_to_sequential import compile_nfa_to_sequential
-from sequential_simulator import simulate
-from sequential_aiger_writer import SequentialAigerWriter
+import os
+import sys
+
+sys.path.append(os.path.dirname(os.path.dirname(__file__)))
+
+from regex_parser import parse_regex  # noqa: E402
+from nfa_builder import build_nfa  # noqa: E402
+from nfa_to_sequential import compile_nfa_to_sequential  # noqa: E402
+from sequential_simulator import simulate  # noqa: E402
+from sequential_aiger_writer import SequentialAigerWriter  # noqa: E402
 
 
 def word_to_trace(word: str) -> list[dict[str, bool]]:

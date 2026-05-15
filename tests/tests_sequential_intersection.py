@@ -1,8 +1,11 @@
-# tests_sequential_intersection.py
+import os
+import sys
 
-from sequential_regex_compiler import compile_regex_to_sequential
-from sequential_simulator import simulate
-from sequential_aiger_writer import SequentialAigerWriter
+sys.path.append(os.path.dirname(os.path.dirname(__file__)))
+
+from sequential_regex_compiler import compile_regex_to_sequential  # noqa: E402
+from sequential_simulator import simulate  # noqa: E402
+from sequential_aiger_writer import SequentialAigerWriter  # noqa: E402
 
 
 def word_to_trace(word: str) -> list[dict[str, bool]]:
