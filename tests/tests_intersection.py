@@ -1,11 +1,12 @@
 import os
 import sys
 
-sys.path.append(os.path.dirname(os.path.dirname(__file__)))
+ROOT_DIR = os.path.dirname(os.path.dirname(__file__))
+sys.path.append(ROOT_DIR)
 
-from regex_bounded_compiler import compile_regex_bounded  # noqa: E402
-from evaluator import evaluate  # noqa: E402
-from aiger import compile_expr_to_aiger  # noqa: E402
+from string_to_aiger.regex.regex_bounded_compiler import compile_regex_bounded  # noqa: E402
+from string_to_aiger.logic.evaluator import evaluate  # noqa: E402
+from string_to_aiger.aiger.aiger import compile_expr_to_aiger  # noqa: E402
 
 
 def test_intersection_a_or_b_star_and_a_star():

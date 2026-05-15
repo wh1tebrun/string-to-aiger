@@ -1,11 +1,12 @@
 import os
 import sys
 
-sys.path.append(os.path.dirname(os.path.dirname(__file__)))
+ROOT_DIR = os.path.dirname(os.path.dirname(__file__))
+sys.path.append(ROOT_DIR)
 
-from sequential_regex_compiler import compile_regex_to_sequential  # noqa: E402
-from sequential_simulator import simulate  # noqa: E402
-from sequential_aiger_writer import SequentialAigerWriter  # noqa: E402
+from string_to_aiger.sequential.sequential_regex_compiler import compile_regex_to_sequential  # noqa: E402
+from string_to_aiger.sequential.sequential_simulator import simulate  # noqa: E402
+from string_to_aiger.sequential.sequential_aiger_writer import SequentialAigerWriter  # noqa: E402
 
 
 def word_to_trace(word: str) -> list[dict[str, bool]]:
