@@ -29,10 +29,10 @@ Milestone 3 adds conjunction / intersection support:
 a*&b*
 ```
 
-The project currently supports conjunction in both:
+The project currently supports conjunction in two backends:
 
-bounded combinational encoding
-experimental sequential latch-based encoding
+- bounded combinational encoding
+- experimental sequential latch-based encoding
 
 ## High-level goal
 
@@ -90,7 +90,7 @@ Generated AIGER files are written to:
 outputs/
 ```
 
-The project root contains only the main entry point, runner scripts, documentation, examples, demos, tests, outputs, and the string_to_aiger package.
+The project root contains the main entry point, runner scripts, documentation, examples, demos, tests, generated outputs, and the `string_to_aiger` package.
 
 ## Milestone 1 pipeline
 
@@ -257,8 +257,10 @@ is represented as a tree containing:
 ```text
 Star
 └── UnionExpr
-├── Char("a")
-└── Concat(Char("b"), Char("a"))
+    ├── Char("a")
+    └── Concat
+        ├── Char("b")
+        └── Char("a")
 ```
 
 For intersection, the expression:
@@ -281,12 +283,12 @@ After parsing, the regex AST is translated into an NFA.
 
 The NFA representation contains:
 
-a start state
-a set of accepting states
-symbol transitions
-epsilon transitions
+- a start state
+- a set of accepting states
+- symbol transitions
+- epsilon transitions
 
-Epsilon transitions are represented internally with None.
+Epsilon transitions are represented internally with ```None```.
 
 For example, Kleene star introduces loops and epsilon transitions, allowing expressions such as:
 
@@ -354,9 +356,9 @@ The sequential circuit uses latches to store the current active NFA states.
 
 The input protocol is stream-based:
 
-in each normal step, one symbol input such as is_a or is_b is true
-in the final step, end is true
-the output accept is true iff end is true and an accepting state is active
+- in each normal step, one symbol input such as is_a or is_b is true
+- in the final step, end is true
+- the output ```accept``` is true iff end is true and an accepting state is active
 
 For example, the word aaa for the expression a* is represented as:
 
@@ -367,26 +369,28 @@ step 3: is_a = true, end = false
 step 4: is_a = false, end = true
 ```
 
-This backend produces AIGER files with L > 0, meaning that latches are present.
+This backend produces AIGER files with ```L > 0```, meaning that latches are present.
 
 ## Milestone 2 files
 
 The following components have been implemented for milestone 2:
 
-string_to_aiger/regex/regex_ast.py: regex AST node definitions
-string_to_aiger/regex/regex_pretty.py: readable printing of regex ASTs
-string_to_aiger/regex/regex_parser.py: parser for a small regex fragment
-string_to_aiger/nfa/nfa.py: NFA data structure
-string_to_aiger/nfa/nfa_builder.py: construction of an NFA from a regex AST
-string_to_aiger/nfa/nfa_evaluator.py: direct NFA evaluation on candidate strings
-string_to_aiger/bounded/bounded_nfa_encoding.py: bounded combinational encoding of an NFA
-string_to_aiger/regex/regex_to_aiger.py: high-level wrapper from regex pattern and bound to ASCII AIGER
-string_to_aiger/sequential/sequential_circuit.py: intermediate representation for sequential circuits
-string_to_aiger/sequential/sequential_aiger_writer.py: ASCII AIGER writer with latch support
-string_to_aiger/sequential/sequential_simulator.py: Python simulator for sequential circuits
-string_to_aiger/sequential/nfa_to_sequential.py: generic NFA to sequential circuit translation
-tests/tests_regex.py: tests for regex parsing, NFA evaluation, bounded encoding, and AIGER output
-tests/tests_sequential.py: tests for the sequential backend
+| File | Purpose |
+|---|---|
+| `string_to_aiger/regex/regex_ast.py` | Defines regex AST node types such as `Empty`, `Char`, `Concat`, `UnionExpr`, `Star`, and `Intersect`. |
+| `string_to_aiger/regex/regex_pretty.py` | Provides readable printing of regex ASTs. |
+| `string_to_aiger/regex/regex_parser.py` | Parses the supported regular-expression fragment. |
+| `string_to_aiger/nfa/nfa.py` | Defines the NFA data structure. |
+| `string_to_aiger/nfa/nfa_builder.py` | Constructs an NFA from a regex AST. |
+| `string_to_aiger/nfa/nfa_evaluator.py` | Directly evaluates NFAs on candidate strings. |
+| `string_to_aiger/bounded/bounded_nfa_encoding.py` | Encodes an NFA as a bounded combinational logical expression. |
+| `string_to_aiger/regex/regex_to_aiger.py` | Provides a high-level wrapper from regex pattern and bound to ASCII AIGER. |
+| `string_to_aiger/sequential/sequential_circuit.py` | Defines the intermediate representation for sequential circuits. |
+| `string_to_aiger/sequential/sequential_aiger_writer.py` | Writes latch-based ASCII AIGER files. |
+| `string_to_aiger/sequential/sequential_simulator.py` | Simulates sequential circuits in Python. |
+| `string_to_aiger/sequential/nfa_to_sequential.py` | Translates a generic NFA into a sequential circuit. |
+| `tests/tests_regex.py` | Tests regex parsing, NFA evaluation, bounded encoding, and AIGER output. |
+| `tests/tests_sequential.py` | Tests the sequential backend. |
 
 ## Run milestone 2 demos
 
@@ -451,24 +455,12 @@ Milestone 3 adds support for conjunction, written as &.
 The expression:
 
 ```text
-(a|b)&a
+((a|b)*) & (a*)
 ```
 
 means that a candidate string must satisfy both regular expressions at the same time.
 
-In this example:
-
-```text
-(a|b)*
-```
-
-accepts all strings over a and b, while:
-
-```text
-a*
-```
-
-accepts only strings consisting of a.
+In this example, (a|b)* accepts all strings over a and b, while a* accepts only strings consisting of a.
 
 Therefore, their intersection behaves like:
 
@@ -484,11 +476,9 @@ The precedence order is:
 
 ```text
 
-   highest precedence
-
-concatenation
-&
-| lowest precedence
+1. concatenation
+2. &
+3. |
 ```
 
 For example:
@@ -546,10 +536,10 @@ run A and B in parallel
 accept = accept_A AND accept_B
 ```
 
-For example:
+For example, the expression:
 
 ```text
-(a|b)&a
+((a|b)*) & (a*)
 ```
 
 is handled by compiling both sides into sequential circuits:
@@ -580,14 +570,16 @@ This allows conjunction to be represented using latch-based AIGER without constr
 
 The following components were added or extended for milestone 3:
 
-string_to_aiger/regex/regex_ast.py: added Intersect
-string_to_aiger/regex/regex_pretty.py: added pretty printing for Intersect
-string_to_aiger/regex/regex_parser.py: added parsing support for &
-string_to_aiger/regex/regex_bounded_compiler.py: compiles regex ASTs with bounded intersection support
-string_to_aiger/sequential/sequential_intersection.py: helpers for merging sequential circuits for conjunction
-string_to_aiger/sequential/sequential_regex_compiler.py: compiles regex ASTs into sequential circuits, including Intersect
-tests/tests_intersection.py: tests for bounded conjunction behavior and AIGER output
-tests/tests_sequential_intersection.py: tests for sequential conjunction behavior and latch-based AIGER output
+| File | Purpose |
+|---|---|
+| `string_to_aiger/regex/regex_ast.py` | Adds the `Intersect` AST node for conjunction / intersection. |
+| `string_to_aiger/regex/regex_pretty.py` | Adds readable printing support for `Intersect`. |
+| `string_to_aiger/regex/regex_parser.py` | Adds parsing support for the `&` operator. |
+| `string_to_aiger/regex/regex_bounded_compiler.py` | Compiles regex ASTs with bounded intersection support. |
+| `string_to_aiger/sequential/sequential_intersection.py` | Provides helpers for merging sequential circuits for conjunction. |
+| `string_to_aiger/sequential/sequential_regex_compiler.py` | Compiles regex ASTs into sequential circuits, including `Intersect`. |
+| `tests/tests_intersection.py` | Tests bounded conjunction behavior and AIGER output. |
+| `tests/tests_sequential_intersection.py` | Tests sequential conjunction behavior and latch-based AIGER output. |
 
 ## Run milestone 3 demos
 
@@ -701,15 +693,13 @@ outputs/
 
 Examples include:
 
-```text
-outputs/output.aag
-outputs/regex_output.aag
-outputs/bounded_output_astar.aag
-outputs/sequential_astar.aag
-outputs/sequential_generic_astar.aag
-outputs/intersection_output__aorb_staranda_star.aag
-outputs/sequential_intersection_output.aag
-```
+- ```outputs/output.aag```
+- ```outputs/regex_output.aag```
+- ```outputs/bounded_output_astar.aag```
+- ```outputs/sequential_astar.aag```
+- ```outputs/sequential_generic_astar.aag```
+- ```outputs/intersection_output__aorb_staranda_star.aag```
+- ```outputs/sequential_intersection_output.aag```
 
 The exact file names depend on the demo and the regex pattern being compiled.
 
@@ -717,8 +707,7 @@ Generated .aag files are ignored by Git because they can be regenerated from the
 
 ## Current status
 
-The current implementation supports five levels:
-
+The current implementation supports five compilation modes:
 ```text
 Milestone 1:
 fixed strings
@@ -754,35 +743,35 @@ regular expressions with conjunction
 
 ## Current limitations
 
-The bounded backend only reasons about candidate strings up to a fixed maximum length.
+- The bounded backend only reasons about candidate strings up to a fixed maximum length.
 
-The sequential backend currently uses a simple stream-based input protocol.
+- The sequential backend currently uses a simple stream-based input protocol.
 
-Sequential conjunction is implemented by parallel circuit composition rather than explicit product automaton construction.
+- Sequential conjunction is implemented by parallel circuit composition rather than explicit product automaton construction.
 
-The project currently does not support:
+- The project currently does not support:
 
-full regular-expression syntax
-character classes
-escape handling
-minimization or optimization of automata
-certified AIGER semantic checking with external tools
-external model checker integration
-product automata as a separate construction
+- full regular-expression syntax
+- character classes
+- escape handling
+- minimization or optimization of automata
+- certified AIGER semantic checking with external tools
+- external model checker integration
+- product automata as a separate construction
 
 ## Future work
 
 Possible future improvements include:
 
-product automaton construction for conjunction
-richer regular-expression parser
-better alphabet handling
-improved AIGER optimization
-external validation with AIGER tools
-comparison between bounded and sequential encodings
-integration with hardware model checkers
-packaging improvements such as pyproject.toml
-optional CLI entry point
+- product automaton construction for conjunction
+- richer regular-expression parser
+- better alphabet handling
+- improved AIGER optimization
+- external validation with AIGER tools
+- comparison between bounded and sequential encodings
+- integration with hardware model checkers
+- packaging improvements such as pyproject.toml
+- optional CLI entry point
 
 ## Summary
 
