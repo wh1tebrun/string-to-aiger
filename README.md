@@ -52,7 +52,25 @@ This makes it possible to represent string constraints in a hardware verificatio
 
 ## Project organization
 
-The source files currently remain in the project root.
+The source code is organized as a Python package under:
+
+```text
+string_to_aiger/
+```
+
+The package is divided into submodules:
+
+```text
+string_to_aiger/
+├── fixed/
+├── logic/
+├── netlist/
+├── aiger/
+├── regex/
+├── nfa/
+├── bounded/
+└── sequential/
+```
 
 Demo scripts are stored under:
 
@@ -72,7 +90,7 @@ Generated AIGER files are written to:
 outputs/
 ```
 
-This keeps generated artifacts separate from the implementation files.
+The project root contains only the main entry point, runner scripts, documentation, examples, demos, tests, outputs, and the string_to_aiger package.
 
 ## Milestone 1 pipeline
 
@@ -121,18 +139,29 @@ This is sufficient for black/white lists, because all accepted strings are known
 
 ## Milestone 1 files
 
-parser.py: parses a disjunction of concrete strings
-model.py: internal matcher representation
-matcher.py: directly evaluates the matcher model on candidate strings
-compiler.py: compiles matchers into logical expressions
-circuit.py: logical expression data structures
-pretty.py: readable printing of logical expressions
-evaluator.py: evaluates compiled expressions on candidate strings
-netlist.py: gate-level netlist data structures
-netlist_builder.py: converts logical expressions into a gate-level netlist
-netlist_pretty.py: readable printing of netlists
-aiger_writer.py: exports the netlist into ASCII AIGER
-aiger.py: high-level wrapper for compiling expressions to AIGER
+The milestone 1 implementation is mainly located in:
+
+```text
+string_to_aiger/fixed/
+string_to_aiger/logic/
+string_to_aiger/netlist/
+string_to_aiger/aiger/
+```
+
+Important files:
+
+string_to_aiger/fixed/parser.py: parses a disjunction of concrete strings
+string_to_aiger/fixed/model.py: internal matcher representation
+string_to_aiger/fixed/matcher.py: directly evaluates the matcher model on candidate strings
+string_to_aiger/fixed/compiler.py: compiles matchers into logical expressions
+string_to_aiger/logic/circuit.py: logical expression data structures
+string_to_aiger/logic/pretty.py: readable printing of logical expressions
+string_to_aiger/logic/evaluator.py: evaluates compiled expressions on candidate strings
+string_to_aiger/netlist/netlist.py: gate-level netlist data structures
+string_to_aiger/netlist/netlist_builder.py: converts logical expressions into a gate-level netlist
+string_to_aiger/netlist/netlist_pretty.py: readable printing of netlists
+string_to_aiger/aiger/aiger_writer.py: exports the netlist into ASCII AIGER
+string_to_aiger/aiger/aiger.py: high-level wrapper for compiling expressions to AIGER
 main.py: milestone 1 demo entry point
 tests/tests.py: milestone 1 regression tests
 
@@ -342,18 +371,18 @@ This backend produces AIGER files with L > 0, meaning that latches are present.
 
 The following components have been implemented for milestone 2:
 
-regex_ast.py: regex AST node definitions
-regex_pretty.py: readable printing of regex ASTs
-regex_parser.py: parser for a small regex fragment
-nfa.py: NFA data structure
-nfa_builder.py: construction of an NFA from a regex AST
-nfa_evaluator.py: direct NFA evaluation on candidate strings
-bounded_nfa_encoding.py: bounded combinational encoding of an NFA
-regex_to_aiger.py: high-level wrapper from regex pattern and bound to ASCII AIGER
-sequential_circuit.py: intermediate representation for sequential circuits
-sequential_aiger_writer.py: ASCII AIGER writer with latch support
-sequential_simulator.py: Python simulator for sequential circuits
-nfa_to_sequential.py: generic NFA to sequential circuit translation
+string_to_aiger/regex/regex_ast.py: regex AST node definitions
+string_to_aiger/regex/regex_pretty.py: readable printing of regex ASTs
+string_to_aiger/regex/regex_parser.py: parser for a small regex fragment
+string_to_aiger/nfa/nfa.py: NFA data structure
+string_to_aiger/nfa/nfa_builder.py: construction of an NFA from a regex AST
+string_to_aiger/nfa/nfa_evaluator.py: direct NFA evaluation on candidate strings
+string_to_aiger/bounded/bounded_nfa_encoding.py: bounded combinational encoding of an NFA
+string_to_aiger/regex/regex_to_aiger.py: high-level wrapper from regex pattern and bound to ASCII AIGER
+string_to_aiger/sequential/sequential_circuit.py: intermediate representation for sequential circuits
+string_to_aiger/sequential/sequential_aiger_writer.py: ASCII AIGER writer with latch support
+string_to_aiger/sequential/sequential_simulator.py: Python simulator for sequential circuits
+string_to_aiger/sequential/nfa_to_sequential.py: generic NFA to sequential circuit translation
 tests/tests_regex.py: tests for regex parsing, NFA evaluation, bounded encoding, and AIGER output
 tests/tests_sequential.py: tests for the sequential backend
 
@@ -549,12 +578,12 @@ This allows conjunction to be represented using latch-based AIGER without constr
 
 The following components were added or extended for milestone 3:
 
-regex_ast.py: added Intersect
-regex_pretty.py: added pretty printing for Intersect
-regex_parser.py: added parsing support for &
-regex_bounded_compiler.py: compiles regex ASTs with bounded intersection support
-sequential_intersection.py: helpers for merging sequential circuits for conjunction
-sequential_regex_compiler.py: compiles regex ASTs into sequential circuits, including Intersect
+string_to_aiger/regex/regex_ast.py: added Intersect
+string_to_aiger/regex/regex_pretty.py: added pretty printing for Intersect
+string_to_aiger/regex/regex_parser.py: added parsing support for &
+string_to_aiger/regex/regex_bounded_compiler.py: compiles regex ASTs with bounded intersection support
+string_to_aiger/sequential/sequential_intersection.py: helpers for merging sequential circuits for conjunction
+string_to_aiger/sequential/sequential_regex_compiler.py: compiles regex ASTs into sequential circuits, including Intersect
 tests/tests_intersection.py: tests for bounded conjunction behavior and AIGER output
 tests/tests_sequential_intersection.py: tests for sequential conjunction behavior and latch-based AIGER output
 
@@ -637,12 +666,28 @@ python tests/tests_sequential_intersection.py
 A full local test run can be done with:
 
 ```bash
+python run_all_tests.py
+```
+
+This is equivalent to running:
+
+```bash
 python tests/tests.py
 python tests/tests_regex.py
 python tests/tests_sequential.py
 python tests/tests_intersection.py
 python tests/tests_sequential_intersection.py
 ```
+
+## Demo runner
+
+All demos can be executed with:
+
+```bash
+python run_all_demos.py
+```
+
+This runs the milestone 1 demo, regex demos, NFA demos, bounded backend demos, sequential backend demos, and intersection demos.
 
 ## Output artifacts
 
@@ -665,6 +710,8 @@ outputs/sequential_intersection_output.aag
 ```
 
 The exact file names depend on the demo and the regex pattern being compiled.
+
+Generated .aag files are ignored by Git because they can be regenerated from the demo scripts.
 
 ## Current status
 
@@ -732,7 +779,8 @@ improved AIGER optimization
 external validation with AIGER tools
 comparison between bounded and sequential encodings
 integration with hardware model checkers
-package restructuring and cleaner directory organization
+packaging improvements such as pyproject.toml
+optional CLI entry point
 
 ## Summary
 
