@@ -150,20 +150,22 @@ string_to_aiger/aiger/
 
 Important files:
 
-string_to_aiger/fixed/parser.py: parses a disjunction of concrete strings
-string_to_aiger/fixed/model.py: internal matcher representation
-string_to_aiger/fixed/matcher.py: directly evaluates the matcher model on candidate strings
-string_to_aiger/fixed/compiler.py: compiles matchers into logical expressions
-string_to_aiger/logic/circuit.py: logical expression data structures
-string_to_aiger/logic/pretty.py: readable printing of logical expressions
-string_to_aiger/logic/evaluator.py: evaluates compiled expressions on candidate strings
-string_to_aiger/netlist/netlist.py: gate-level netlist data structures
-string_to_aiger/netlist/netlist_builder.py: converts logical expressions into a gate-level netlist
-string_to_aiger/netlist/netlist_pretty.py: readable printing of netlists
-string_to_aiger/aiger/aiger_writer.py: exports the netlist into ASCII AIGER
-string_to_aiger/aiger/aiger.py: high-level wrapper for compiling expressions to AIGER
-main.py: milestone 1 demo entry point
-tests/tests.py: milestone 1 regression tests
+| File | Purpose |
+|---|---|
+| `string_to_aiger/fixed/parser.py` | Parses a disjunction of concrete strings. |
+| `string_to_aiger/fixed/model.py` | Defines the internal matcher representation. |
+| `string_to_aiger/fixed/matcher.py` | Directly evaluates the matcher model on candidate strings. |
+| `string_to_aiger/fixed/compiler.py` | Compiles matchers into logical expressions. |
+| `string_to_aiger/logic/circuit.py` | Defines logical expression data structures. |
+| `string_to_aiger/logic/pretty.py` | Provides readable printing of logical expressions. |
+| `string_to_aiger/logic/evaluator.py` | Evaluates compiled expressions on candidate strings. |
+| `string_to_aiger/netlist/netlist.py` | Defines gate-level netlist data structures. |
+| `string_to_aiger/netlist/netlist_builder.py` | Converts logical expressions into a gate-level netlist. |
+| `string_to_aiger/netlist/netlist_pretty.py` | Provides readable printing of netlists. |
+| `string_to_aiger/aiger/aiger_writer.py` | Exports the netlist into ASCII AIGER. |
+| `string_to_aiger/aiger/aiger.py` | High-level wrapper for compiling expressions to AIGER. |
+| `main.py` | Milestone 1 demo entry point. |
+| `tests/tests.py` | Milestone 1 regression tests. |
 
 ## Milestone 1 demo
 
