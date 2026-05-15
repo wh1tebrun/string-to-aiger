@@ -2,7 +2,7 @@
 
 Prototype compiler from simple string and regular-expression fragments to ASCII AIGER.
 
-The project started with fixed-string disjunctions such as abba | abb, was then extended with Kleene star support using automata-based encodings, and now also includes bounded conjunction / intersection support using &.
+The project started with fixed-string disjunctions such as abba | abb, was then extended with Kleene star support using automata-based encodings, and now also includes conjunction / intersection support using &.
 
 ## Current supported fragments
 
@@ -21,7 +21,7 @@ a*
 (a|ba)*
 ```
 
-Milestone 3 adds bounded conjunction / intersection support:
+Milestone 3 adds conjunction / intersection support:
 
 ```text
 (a|b)&a
@@ -29,7 +29,10 @@ Milestone 3 adds bounded conjunction / intersection support:
 a*&b*
 ```
 
-The project currently supports conjunction in the bounded backend. Sequential conjunction is not implemented yet.
+The project currently supports conjunction in both:
+
+bounded combinational encoding
+experimental sequential latch-based encoding
 
 ## High-level goal
 
@@ -175,7 +178,7 @@ a*
 
 ## Regex AST
 
-For milestone 2, a separate regex AST representation was introduced.
+For milestone 2 and milestone 3, a separate regex AST representation was introduced.
 
 The main AST nodes are:
 
@@ -201,6 +204,18 @@ Star
 └── UnionExpr
 ├── Char("a")
 └── Concat(Char("b"), Char("a"))
+```
+
+For intersection, the expression:
+
+```text
+(a|b)&a
+```
+
+is represented using:
+
+```text
+Intersect(left, right)
 ```
 
 This separates the structure of the regular expression from the later compilation steps.
@@ -412,7 +427,7 @@ is parsed as:
 a | (b & c)
 ```
 
-The regex AST contains a new node:
+The regex AST contains the node:
 
 ```text
 Intersect(left, right)
@@ -420,7 +435,7 @@ Intersect(left, right)
 
 ## Bounded conjunction encoding
 
-For the current implementation, conjunction is compiled in the bounded backend.
+For the bounded backend, conjunction is compiled structurally.
 
 The idea is:
 
@@ -440,6 +455,51 @@ For example:
 
 is compiled by generating bounded encodings for both (a|b)* and a*, then combining them with AND.
 
+This produces a combinational AIGER circuit.
+
+## Sequential conjunction encoding
+
+Sequential conjunction is implemented as an experimental parallel-composition backend.
+
+The idea is:
+
+```text
+A & B
+
+run A and B in parallel
+accept = accept_A AND accept_B
+```
+
+For example:
+
+```text
+(a|b)&a
+```
+
+is handled by compiling both sides into sequential circuits:
+
+```text
+left = (a|b)*
+right = a*
+```
+
+Both circuits read the same input stream.
+
+Their internal latch names are renamed to avoid collisions:
+
+```text
+state_0 -> left_state_0
+state_0 -> right_state_0
+```
+
+The final output is:
+
+```text
+accept = left_accept AND right_accept
+```
+
+This allows conjunction to be represented using latch-based AIGER without constructing an explicit product automaton.
+
 ## Milestone 3 files
 
 The following components were added or extended for milestone 3:
@@ -450,19 +510,35 @@ regex_parser.py: added parsing support for &
 regex_bounded_compiler.py: compiles regex ASTs with bounded intersection support
 regex_intersection_demo.py: demo for bounded conjunction examples
 tests_intersection.py: tests for bounded conjunction behavior and AIGER output
+sequential_intersection.py: helpers for merging sequential circuits for conjunction
+sequential_regex_compiler.py: compiles regex ASTs into sequential circuits, including Intersect
+sequential_intersection_demo.py: demo for sequential conjunction examples
+tests_sequential_intersection.py: tests for sequential conjunction behavior and latch-based AIGER output
 
-## Run milestone 3 demo
+## Run milestone 3 demos
 
-To run the intersection demo:
+To run the bounded intersection demo:
 
 ```bash
 python regex_intersection_demo.py
 ```
 
-To run the intersection tests:
+To run the sequential intersection demo:
+
+```bash
+python sequential_intersection_demo.py
+```
+
+To run the bounded intersection tests:
 
 ```bash
 python tests_intersection.py
+```
+
+To run the sequential intersection tests:
+
+```bash
+python tests_sequential_intersection.py
 ```
 
 ## Milestone 3 current status
@@ -475,9 +551,19 @@ The bounded backend supports conjunction for examples such as:
 a*&b*
 ```
 
-The current implementation supports conjunction through bounded logical encoding.
+The sequential backend also supports conjunction using parallel circuit composition.
 
-Sequential conjunction is not implemented yet. It can be added later either by running two sequential circuits in parallel and combining their accept outputs, or by constructing a product automaton.
+The same examples are supported in the sequential backend:
+
+```text
+(a|b)&a
+(ab)&(a|b)
+a*&b*
+```
+
+The bounded backend produces combinational AIGER.
+
+The sequential backend produces latch-based AIGER with L > 0.
 
 ## Tests
 
@@ -499,10 +585,16 @@ To run the sequential backend tests:
 python tests_sequential.py
 ```
 
-To run the intersection tests:
+To run the bounded intersection tests:
 
 ```bash
 python tests_intersection.py
+```
+
+To run the sequential intersection tests:
+
+```bash
+python tests_sequential_intersection.py
 ```
 
 A full local test run can be done with:
@@ -512,11 +604,12 @@ python tests.py
 python tests_regex.py
 python tests_sequential.py
 python tests_intersection.py
+python tests_sequential_intersection.py
 ```
 
 ## Current status
 
-The current implementation supports four levels:
+The current implementation supports five levels:
 
 ```text
 Milestone 1:
@@ -531,27 +624,33 @@ regular expressions with Kleene star
 -> NFA
 -> bounded combinational AIGER
 
-Milestone 2B prototype:
+Milestone 2B:
 regular expressions with Kleene star
 -> AST
 -> NFA
 -> sequential circuit
 -> latch-based AIGER
 
-Milestone 3:
+Milestone 3A:
 regular expressions with conjunction
 -> AST with Intersect
 -> bounded logical conjunction
 -> combinational AIGER
+
+Milestone 3B:
+regular expressions with conjunction
+-> AST with Intersect
+-> parallel sequential circuits
+-> latch-based AIGER
 ```
 
 ## Current limitations
 
 The bounded backend only reasons about candidate strings up to a fixed maximum length.
 
-The sequential backend is still experimental and currently uses a simple stream-based input protocol.
+The sequential backend currently uses a simple stream-based input protocol.
 
-Conjunction is currently implemented for the bounded backend, but not yet for the sequential backend.
+Sequential conjunction is implemented by parallel circuit composition rather than explicit product automaton construction.
 
 The project currently does not support:
 
@@ -560,20 +659,21 @@ character classes
 escape handling
 minimization or optimization of automata
 certified AIGER semantic checking with external tools
-sequential conjunction / product automata
+external model checker integration
+product automata as a separate construction
 
 ## Future work
 
 Possible future improvements include:
 
-sequential conjunction support
-product automaton construction
+product automaton construction for conjunction
 richer regular-expression parser
 better alphabet handling
 improved AIGER optimization
 external validation with AIGER tools
 comparison between bounded and sequential encodings
 integration with hardware model checkers
+package restructuring and cleaner directory organization
 
 ## Summary
 
@@ -596,8 +696,7 @@ regular expressions with Kleene star
 Milestone 3:
 regular expressions with conjunction
 -> AST with Intersect
--> bounded logical conjunction
--> AIGER
+-> bounded or sequential AIGER
 ```
 
 The bounded backend is useful as a simpler intermediate encoding.
