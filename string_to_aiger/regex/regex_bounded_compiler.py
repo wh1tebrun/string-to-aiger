@@ -1,7 +1,7 @@
 from .regex_ast import Intersect, Regex
 from .regex_parser import parse_regex
 from nfa_builder import build_nfa
-from bounded_nfa_encoding import compile_nfa_bounded
+from string_to_aiger.bounded.bounded_nfa_encoding import compile_nfa_bounded
 from circuit import And, Expr
 
 

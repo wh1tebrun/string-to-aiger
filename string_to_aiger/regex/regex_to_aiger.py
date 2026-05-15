@@ -1,6 +1,6 @@
 from .regex_parser import parse_regex
 from nfa_builder import build_nfa
-from bounded_nfa_encoding import compile_nfa_bounded
+from string_to_aiger.bounded.bounded_nfa_encoding import compile_nfa_bounded
 from aiger import compile_expr_to_aiger
 
 
