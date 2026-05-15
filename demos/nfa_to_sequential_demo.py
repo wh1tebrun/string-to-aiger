@@ -1,7 +1,11 @@
 import os
 import sys
 
-sys.path.append(os.path.dirname(os.path.dirname(__file__)))
+ROOT_DIR = os.path.dirname(os.path.dirname(__file__))
+OUTPUT_DIR = os.path.join(ROOT_DIR, "outputs")
+
+sys.path.append(ROOT_DIR)
+os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 from regex_parser import parse_regex  # noqa: E402
 from nfa_builder import build_nfa  # noqa: E402
@@ -43,8 +47,12 @@ def write_aiger(pattern: str, filename: str) -> None:
     writer = SequentialAigerWriter(circuit)
     aiger_text = writer.write()
 
-    with open(filename, "w", encoding="utf-8") as f:
+    output_path = os.path.join(OUTPUT_DIR, filename)
+
+    with open(output_path, "w", encoding="utf-8") as f:
         f.write(aiger_text)
+
+    print(f"Written to {output_path}")
 
 
 def run(pattern: str, words: list[str]) -> None:
@@ -61,4 +69,3 @@ run("(ab)*", ["", "ab", "abab", "a", "abb", "aba"])
 run("(a|b)*", ["", "a", "b", "ab", "ba", "abba", "abc"])
 
 write_aiger("a*", "sequential_generic_astar.aag")
-print("Written to sequential_generic_astar.aag")

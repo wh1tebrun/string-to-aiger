@@ -1,7 +1,11 @@
 import os
 import sys
 
-sys.path.append(os.path.dirname(os.path.dirname(__file__)))
+ROOT_DIR = os.path.dirname(os.path.dirname(__file__))
+OUTPUT_DIR = os.path.join(ROOT_DIR, "outputs")
+
+sys.path.append(ROOT_DIR)
+os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 from regex_bounded_compiler import compile_regex_bounded  # noqa: E402
 from evaluator import evaluate  # noqa: E402
@@ -41,12 +45,14 @@ def run(pattern: str, bound: int, words: list[str]) -> None:
         print(f"  {word!r} -> {evaluate(expr, word)}")
 
     filename = f"intersection_output_{pattern_to_filename(pattern)}.aag"
+    output_path = os.path.join(OUTPUT_DIR, filename)
+
     aiger_text = compile_expr_to_aiger(expr)
 
-    with open(filename, "w", encoding="utf-8") as f:
+    with open(output_path, "w", encoding="utf-8") as f:
         f.write(aiger_text)
 
-    print(f"\nWritten to {filename}")
+    print(f"\nWritten to {output_path}")
     print("-" * 60)
     print()
 

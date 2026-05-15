@@ -1,7 +1,11 @@
 import os
 import sys
 
-sys.path.append(os.path.dirname(os.path.dirname(__file__)))
+ROOT_DIR = os.path.dirname(os.path.dirname(__file__))
+OUTPUT_DIR = os.path.join(ROOT_DIR, "outputs")
+
+sys.path.append(ROOT_DIR)
+os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 from circuit import And, InputVar  # noqa: E402
 from sequential_circuit import SequentialCircuit  # noqa: E402
@@ -36,11 +40,13 @@ def main():
     writer = SequentialAigerWriter(circuit)
     aiger_text = writer.write()
 
-    with open("sequential_astar.aag", "w", encoding="utf-8") as f:
+    output_path = os.path.join(OUTPUT_DIR, "sequential_astar.aag")
+
+    with open(output_path, "w", encoding="utf-8") as f:
         f.write(aiger_text)
 
     print(aiger_text)
-    print("\nWritten to sequential_astar.aag")
+    print(f"\nWritten to {output_path}")
 
 
 if __name__ == "__main__":

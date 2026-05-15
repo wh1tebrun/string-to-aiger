@@ -1,7 +1,8 @@
 import os
 import sys
 
-sys.path.append(os.path.dirname(os.path.dirname(__file__)))
+ROOT_DIR = os.path.dirname(os.path.dirname(__file__))
+sys.path.append(ROOT_DIR)
 
 from regex_parser import parse_regex  # noqa: E402
 from nfa_builder import build_nfa  # noqa: E402

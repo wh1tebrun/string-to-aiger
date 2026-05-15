@@ -1,7 +1,11 @@
 import os
 import sys
 
-sys.path.append(os.path.dirname(os.path.dirname(__file__)))
+ROOT_DIR = os.path.dirname(os.path.dirname(__file__))
+OUTPUT_DIR = os.path.join(ROOT_DIR, "outputs")
+
+sys.path.append(ROOT_DIR)
+os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 from regex_parser import parse_regex  # noqa: E402
 from nfa_builder import build_nfa  # noqa: E402
@@ -28,10 +32,12 @@ def run(pattern: str, bound: int, words: list[str]) -> None:
     aiger_text = compile_expr_to_aiger(expr)
 
     filename = f"bounded_output_{pattern_to_filename(pattern)}.aag"
-    with open(filename, "w", encoding="utf-8") as f:
+    output_path = os.path.join(OUTPUT_DIR, filename)
+
+    with open(output_path, "w", encoding="utf-8") as f:
         f.write(aiger_text)
 
-    print(f"\nWritten to {filename}")
+    print(f"\nWritten to {output_path}")
     print("-" * 60)
     print()
 

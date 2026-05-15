@@ -1,3 +1,5 @@
+import os
+
 from parser import parse
 from model import build_model
 from matcher import matches_or
@@ -7,6 +9,9 @@ from evaluator import evaluate
 from netlist_builder import NetlistBuilder
 from netlist_pretty import pretty_netlist
 from aiger import compile_expr_to_aiger
+
+
+OUTPUT_DIR = "outputs"
 
 
 def read_expression(path: str) -> str:
@@ -61,10 +66,13 @@ def main():
     print("\nAIGER:")
     print(aiger_text)
 
-    with open("output.aag", "w", encoding="utf-8") as f:
+    os.makedirs(OUTPUT_DIR, exist_ok=True)
+    output_path = os.path.join(OUTPUT_DIR, "output.aag")
+
+    with open(output_path, "w", encoding="utf-8") as f:
         f.write(aiger_text)
 
-    print("\nWritten to output.aag")
+    print(f"\nWritten to {output_path}")
 
 
 if __name__ == "__main__":

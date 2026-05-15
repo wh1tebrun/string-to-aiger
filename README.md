@@ -50,6 +50,30 @@ string / regex problem
 
 This makes it possible to represent string constraints in a hardware verification format.
 
+## Project organization
+
+The source files currently remain in the project root.
+
+Demo scripts are stored under:
+
+```text
+demos/
+```
+
+Test scripts are stored under:
+
+```text
+tests/
+```
+
+Generated AIGER files are written to:
+
+```text
+outputs/
+```
+
+This keeps generated artifacts separate from the implementation files.
+
 ## Milestone 1 pipeline
 
 For fixed-string disjunctions, the pipeline is:
@@ -109,8 +133,8 @@ netlist_builder.py: converts logical expressions into a gate-level netlist
 netlist_pretty.py: readable printing of netlists
 aiger_writer.py: exports the netlist into ASCII AIGER
 aiger.py: high-level wrapper for compiling expressions to AIGER
-main.py: demo entry point
-tests.py: basic regression tests
+main.py: milestone 1 demo entry point
+tests/tests.py: milestone 1 regression tests
 
 ## Milestone 1 demo
 
@@ -129,7 +153,7 @@ examples/test1.txt
 and writes the generated AIGER circuit to:
 
 ```text
-output.aag
+outputs/output.aag
 ```
 
 ## Milestone 1 tests
@@ -137,7 +161,7 @@ output.aag
 To run the milestone 1 tests:
 
 ```bash
-python tests.py
+python tests/tests.py
 ```
 
 ## Example expressions
@@ -326,46 +350,67 @@ nfa_builder.py: construction of an NFA from a regex AST
 nfa_evaluator.py: direct NFA evaluation on candidate strings
 bounded_nfa_encoding.py: bounded combinational encoding of an NFA
 regex_to_aiger.py: high-level wrapper from regex pattern and bound to ASCII AIGER
-tests_regex.py: tests for regex parsing, NFA evaluation, bounded encoding, and AIGER output
 sequential_circuit.py: intermediate representation for sequential circuits
 sequential_aiger_writer.py: ASCII AIGER writer with latch support
 sequential_simulator.py: Python simulator for sequential circuits
-sequential_astar_demo.py: manual sequential prototype for a*
-sequential_astar_sim_demo.py: simulation demo for the manual a* circuit
 nfa_to_sequential.py: generic NFA to sequential circuit translation
-nfa_to_sequential_demo.py: demo for generic sequential NFA encoding
-tests_sequential.py: tests for the sequential backend
+tests/tests_regex.py: tests for regex parsing, NFA evaluation, bounded encoding, and AIGER output
+tests/tests_sequential.py: tests for the sequential backend
 
 ## Run milestone 2 demos
+
+To run the regex parser demo:
+
+```bash
+python demos/regex_parser_demo.py
+```
+
+To inspect generated NFAs:
+
+```bash
+python demos/nfa_demo.py
+```
+
+To run the direct NFA evaluator demo:
+
+```bash
+python demos/nfa_evaluator_demo.py
+```
 
 To run the bounded NFA demo:
 
 ```bash
-python bounded_nfa_demo.py
+python demos/bounded_nfa_demo.py
 ```
 
 To compile a regex directly to bounded AIGER:
 
 ```bash
-python regex_to_aiger_demo.py
+python demos/regex_to_aiger_demo.py
 ```
 
 To run the manual sequential a* demo:
 
 ```bash
-python sequential_astar_demo.py
+python demos/sequential_astar_demo.py
 ```
 
 To simulate the manual sequential a* circuit:
 
 ```bash
-python sequential_astar_sim_demo.py
+python demos/sequential_astar_sim_demo.py
 ```
 
 To run the generic NFA-to-sequential demo:
 
 ```bash
-python nfa_to_sequential_demo.py
+python demos/nfa_to_sequential_demo.py
+```
+
+Generated AIGER files from these demos are written to:
+
+```text
+outputs/
 ```
 
 ## Milestone 3: Conjunction / intersection support
@@ -508,37 +553,29 @@ regex_ast.py: added Intersect
 regex_pretty.py: added pretty printing for Intersect
 regex_parser.py: added parsing support for &
 regex_bounded_compiler.py: compiles regex ASTs with bounded intersection support
-regex_intersection_demo.py: demo for bounded conjunction examples
-tests_intersection.py: tests for bounded conjunction behavior and AIGER output
 sequential_intersection.py: helpers for merging sequential circuits for conjunction
 sequential_regex_compiler.py: compiles regex ASTs into sequential circuits, including Intersect
-sequential_intersection_demo.py: demo for sequential conjunction examples
-tests_sequential_intersection.py: tests for sequential conjunction behavior and latch-based AIGER output
+tests/tests_intersection.py: tests for bounded conjunction behavior and AIGER output
+tests/tests_sequential_intersection.py: tests for sequential conjunction behavior and latch-based AIGER output
 
 ## Run milestone 3 demos
 
 To run the bounded intersection demo:
 
 ```bash
-python regex_intersection_demo.py
+python demos/regex_intersection_demo.py
 ```
 
 To run the sequential intersection demo:
 
 ```bash
-python sequential_intersection_demo.py
+python demos/sequential_intersection_demo.py
 ```
 
-To run the bounded intersection tests:
+Generated AIGER files from these demos are written to:
 
-```bash
-python tests_intersection.py
-```
-
-To run the sequential intersection tests:
-
-```bash
-python tests_sequential_intersection.py
+```text
+outputs/
 ```
 
 ## Milestone 3 current status
@@ -570,42 +607,64 @@ The sequential backend produces latch-based AIGER with L > 0.
 To run the milestone 1 tests:
 
 ```bash
-python tests.py
+python tests/tests.py
 ```
 
 To run the regex and bounded encoding tests:
 
 ```bash
-python tests_regex.py
+python tests/tests_regex.py
 ```
 
 To run the sequential backend tests:
 
 ```bash
-python tests_sequential.py
+python tests/tests_sequential.py
 ```
 
 To run the bounded intersection tests:
 
 ```bash
-python tests_intersection.py
+python tests/tests_intersection.py
 ```
 
 To run the sequential intersection tests:
 
 ```bash
-python tests_sequential_intersection.py
+python tests/tests_sequential_intersection.py
 ```
 
 A full local test run can be done with:
 
 ```bash
-python tests.py
-python tests_regex.py
-python tests_sequential.py
-python tests_intersection.py
-python tests_sequential_intersection.py
+python tests/tests.py
+python tests/tests_regex.py
+python tests/tests_sequential.py
+python tests/tests_intersection.py
+python tests/tests_sequential_intersection.py
 ```
+
+## Output artifacts
+
+Generated AIGER files are written to:
+
+```text
+outputs/
+```
+
+Examples include:
+
+```text
+outputs/output.aag
+outputs/regex_output.aag
+outputs/bounded_output_astar.aag
+outputs/sequential_astar.aag
+outputs/sequential_generic_astar.aag
+outputs/intersection_output__aorb_staranda_star.aag
+outputs/sequential_intersection_output.aag
+```
+
+The exact file names depend on the demo and the regex pattern being compiled.
 
 ## Current status
 
