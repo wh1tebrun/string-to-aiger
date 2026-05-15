@@ -1,9 +1,14 @@
-from regex_parser import parse_regex
-from nfa_builder import build_nfa
-from bounded_nfa_encoding import compile_nfa_bounded
-from evaluator import evaluate
-from pretty import pretty
-from aiger import compile_expr_to_aiger
+import os
+import sys
+
+sys.path.append(os.path.dirname(os.path.dirname(__file__)))
+
+from regex_parser import parse_regex  # noqa: E402
+from nfa_builder import build_nfa  # noqa: E402
+from bounded_nfa_encoding import compile_nfa_bounded  # noqa: E402
+from evaluator import evaluate  # noqa: E402
+from pretty import pretty  # noqa: E402
+from aiger import compile_expr_to_aiger  # noqa: E402
 
 
 def run(pattern: str, bound: int, words: list[str]) -> None:

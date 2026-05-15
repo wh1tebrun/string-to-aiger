@@ -1,4 +1,9 @@
-from regex_to_aiger import compile_regex_to_aiger
+import os
+import sys
+
+sys.path.append(os.path.dirname(os.path.dirname(__file__)))
+
+from regex_to_aiger import compile_regex_to_aiger  # noqa: E402
 
 
 def main():

@@ -1,5 +1,10 @@
-from regex_parser import parse_regex
-from nfa_builder import build_nfa
+import os
+import sys
+
+sys.path.append(os.path.dirname(os.path.dirname(__file__)))
+
+from regex_parser import parse_regex  # noqa: E402
+from nfa_builder import build_nfa  # noqa: E402
 
 
 def print_nfa(pattern: str) -> None:

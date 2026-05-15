@@ -1,6 +1,11 @@
-from circuit import And, InputVar
-from sequential_circuit import SequentialCircuit
-from sequential_aiger_writer import SequentialAigerWriter
+import os
+import sys
+
+sys.path.append(os.path.dirname(os.path.dirname(__file__)))
+
+from circuit import And, InputVar  # noqa: E402
+from sequential_circuit import SequentialCircuit  # noqa: E402
+from sequential_aiger_writer import SequentialAigerWriter  # noqa: E402
 
 
 def build_a_star_sequential_circuit() -> SequentialCircuit:

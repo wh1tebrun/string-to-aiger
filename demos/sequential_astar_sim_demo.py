@@ -1,5 +1,10 @@
-from sequential_astar_demo import build_a_star_sequential_circuit
-from sequential_simulator import simulate
+import os
+import sys
+
+sys.path.append(os.path.dirname(os.path.dirname(__file__)))
+
+from sequential_astar_demo import build_a_star_sequential_circuit  # noqa: E402
+from sequential_simulator import simulate  # noqa: E402
 
 
 def word_to_trace(word: str) -> list[dict[str, bool]]:

@@ -1,6 +1,11 @@
-from regex_parser import parse_regex
-from nfa_builder import build_nfa
-from nfa_evaluator import accepts
+import os
+import sys
+
+sys.path.append(os.path.dirname(os.path.dirname(__file__)))
+
+from regex_parser import parse_regex  # noqa: E402
+from nfa_builder import build_nfa  # noqa: E402
+from nfa_evaluator import accepts  # noqa: E402
 
 
 def run(pattern: str, words: list[str]) -> None:

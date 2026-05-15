@@ -1,5 +1,10 @@
-from regex_parser import parse_regex
-from regex_pretty import pretty_regex
+import os
+import sys
+
+sys.path.append(os.path.dirname(os.path.dirname(__file__)))
+
+from regex_parser import parse_regex  # noqa: E402
+from regex_pretty import pretty_regex  # noqa: E402
 
 
 examples = [

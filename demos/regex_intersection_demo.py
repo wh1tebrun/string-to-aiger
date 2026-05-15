@@ -1,7 +1,12 @@
-from regex_bounded_compiler import compile_regex_bounded
-from evaluator import evaluate
-from pretty import pretty
-from aiger import compile_expr_to_aiger
+import os
+import sys
+
+sys.path.append(os.path.dirname(os.path.dirname(__file__)))
+
+from regex_bounded_compiler import compile_regex_bounded  # noqa: E402
+from evaluator import evaluate  # noqa: E402
+from pretty import pretty  # noqa: E402
+from aiger import compile_expr_to_aiger  # noqa: E402
 
 
 def pattern_to_filename(pattern: str) -> str:
