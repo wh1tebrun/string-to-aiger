@@ -7,12 +7,12 @@ OUTPUT_DIR = os.path.join(ROOT_DIR, "outputs")
 sys.path.append(ROOT_DIR)
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
-from regex_parser import parse_regex  # noqa: E402
-from nfa_builder import build_nfa  # noqa: E402
-from bounded_nfa_encoding import compile_nfa_bounded  # noqa: E402
-from evaluator import evaluate  # noqa: E402
-from pretty import pretty  # noqa: E402
-from aiger import compile_expr_to_aiger  # noqa: E402
+from string_to_aiger.regex.regex_parser import parse_regex  # noqa: E402
+from string_to_aiger.nfa.nfa_builder import build_nfa  # noqa: E402
+from string_to_aiger.bounded.bounded_nfa_encoding import compile_nfa_bounded  # noqa: E402
+from string_to_aiger.logic.evaluator import evaluate  # noqa: E402
+from string_to_aiger.logic.pretty import pretty  # noqa: E402
+from string_to_aiger.aiger.aiger import compile_expr_to_aiger  # noqa: E402
 
 
 def run(pattern: str, bound: int, words: list[str]) -> None:

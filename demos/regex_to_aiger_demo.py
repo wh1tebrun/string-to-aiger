@@ -7,7 +7,7 @@ OUTPUT_DIR = os.path.join(ROOT_DIR, "outputs")
 sys.path.append(ROOT_DIR)
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
-from regex_to_aiger import compile_regex_to_aiger  # noqa: E402
+from string_to_aiger.regex.regex_to_aiger import compile_regex_to_aiger  # noqa: E402
 
 
 def main():

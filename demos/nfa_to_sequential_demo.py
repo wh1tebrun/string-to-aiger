@@ -7,11 +7,11 @@ OUTPUT_DIR = os.path.join(ROOT_DIR, "outputs")
 sys.path.append(ROOT_DIR)
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
-from regex_parser import parse_regex  # noqa: E402
-from nfa_builder import build_nfa  # noqa: E402
-from nfa_to_sequential import compile_nfa_to_sequential  # noqa: E402
-from sequential_simulator import simulate  # noqa: E402
-from sequential_aiger_writer import SequentialAigerWriter  # noqa: E402
+from string_to_aiger.regex.regex_parser import parse_regex  # noqa: E402
+from string_to_aiger.nfa.nfa_builder import build_nfa  # noqa: E402
+from string_to_aiger.sequential.nfa_to_sequential import compile_nfa_to_sequential  # noqa: E402
+from string_to_aiger.sequential.sequential_simulator import simulate  # noqa: E402
+from string_to_aiger.sequential.sequential_aiger_writer import SequentialAigerWriter  # noqa: E402
 
 
 def word_to_trace(word: str) -> list[dict[str, bool]]:

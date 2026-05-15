@@ -4,8 +4,8 @@ import sys
 ROOT_DIR = os.path.dirname(os.path.dirname(__file__))
 sys.path.append(ROOT_DIR)
 
-from regex_parser import parse_regex  # noqa: E402
-from nfa_builder import build_nfa  # noqa: E402
+from string_to_aiger.regex.regex_parser import parse_regex  # noqa: E402
+from string_to_aiger.nfa.nfa_builder import build_nfa  # noqa: E402
 
 
 def print_nfa(pattern: str) -> None:
