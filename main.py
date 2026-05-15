@@ -1,14 +1,14 @@
 import os
 
-from parser import parse
-from model import build_model
-from matcher import matches_or
-from compiler import compile_or
-from pretty import pretty
-from evaluator import evaluate
-from netlist_builder import NetlistBuilder
-from netlist_pretty import pretty_netlist
-from aiger import compile_expr_to_aiger
+from string_to_aiger.fixed.parser import parse
+from string_to_aiger.fixed.model import build_model
+from string_to_aiger.fixed.matcher import matches_or
+from string_to_aiger.fixed.compiler import compile_or
+from string_to_aiger.logic.pretty import pretty
+from string_to_aiger.logic.evaluator import evaluate
+from string_to_aiger.netlist.netlist_builder import NetlistBuilder
+from string_to_aiger.netlist.netlist_pretty import pretty_netlist
+from string_to_aiger.aiger.aiger import compile_expr_to_aiger
 
 
 OUTPUT_DIR = "outputs"
