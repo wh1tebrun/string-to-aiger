@@ -2,7 +2,7 @@
 
 Prototype compiler from simple string and regular-expression fragments to ASCII AIGER.
 
-The project started with fixed-string disjunctions such as abba | abb and was then extended with Kleene star support using automata-based encodings.
+The project started with fixed-string disjunctions such as abba | abb, was then extended with Kleene star support using automata-based encodings, and now also includes bounded conjunction / intersection support using &.
 
 ## Current supported fragments
 
@@ -12,7 +12,7 @@ Milestone 1 supports disjunctions of concrete fixed strings:
 abba | abb | abbreviation
 ```
 
-Milestone 2 extends this with a small regular-expression fragment including:
+Milestone 2 extends this with a small regular-expression fragment including Kleene star:
 
 ```text
 a*
@@ -21,7 +21,15 @@ a*
 (a|ba)*
 ```
 
-The project currently does not support conjunction &.
+Milestone 3 adds bounded conjunction / intersection support:
+
+```text
+(a|b)&a
+(ab)&(a|b)
+a*&b*
+```
+
+The project currently supports conjunction in the bounded backend. Sequential conjunction is not implemented yet.
 
 ## High-level goal
 
@@ -145,7 +153,7 @@ At the current milestone 1 demo setup, main.py reads one selected example file a
 
 Milestone 2 extends the project from fixed-string disjunctions toward regular expressions with Kleene star.
 
-The implemented milestone 2 pipeline is:
+The implemented milestone 2 bounded pipeline is:
 
 ```text
 regular expression
@@ -177,6 +185,7 @@ Char
 Concat
 UnionExpr
 Star
+Intersect
 ```
 
 For example, the expression:
@@ -344,6 +353,132 @@ To run the generic NFA-to-sequential demo:
 python nfa_to_sequential_demo.py
 ```
 
+## Milestone 3: Conjunction / intersection support
+
+Milestone 3 adds support for conjunction, written as &.
+
+The expression:
+
+```text
+(a|b)&a
+```
+
+means that a candidate string must satisfy both regular expressions at the same time.
+
+In this example:
+
+```text
+(a|b)*
+```
+
+accepts all strings over a and b, while:
+
+```text
+a*
+```
+
+accepts only strings consisting of a.
+
+Therefore, their intersection behaves like:
+
+```text
+a*
+```
+
+## Milestone 3 parser support
+
+The regex parser now supports the & operator.
+
+The precedence order is:
+
+```text
+
+   highest precedence
+
+concatenation
+&
+| lowest precedence
+```
+
+For example:
+
+```text
+a|b&c
+```
+
+is parsed as:
+
+```text
+a | (b & c)
+```
+
+The regex AST contains a new node:
+
+```text
+Intersect(left, right)
+```
+
+## Bounded conjunction encoding
+
+For the current implementation, conjunction is compiled in the bounded backend.
+
+The idea is:
+
+```text
+compile(A & B)
+
+compile(A) AND compile(B)
+```
+
+This means that both sides are compiled separately into bounded logical expressions, and the final expression is the conjunction of both.
+
+For example:
+
+```text
+(a|b)&a
+```
+
+is compiled by generating bounded encodings for both (a|b)* and a*, then combining them with AND.
+
+## Milestone 3 files
+
+The following components were added or extended for milestone 3:
+
+regex_ast.py: added Intersect
+regex_pretty.py: added pretty printing for Intersect
+regex_parser.py: added parsing support for &
+regex_bounded_compiler.py: compiles regex ASTs with bounded intersection support
+regex_intersection_demo.py: demo for bounded conjunction examples
+tests_intersection.py: tests for bounded conjunction behavior and AIGER output
+
+## Run milestone 3 demo
+
+To run the intersection demo:
+
+```bash
+python regex_intersection_demo.py
+```
+
+To run the intersection tests:
+
+```bash
+python tests_intersection.py
+```
+
+## Milestone 3 current status
+
+The bounded backend supports conjunction for examples such as:
+
+```text
+(a|b)&a
+(ab)&(a|b)
+a*&b*
+```
+
+The current implementation supports conjunction through bounded logical encoding.
+
+Sequential conjunction is not implemented yet. It can be added later either by running two sequential circuits in parallel and combining their accept outputs, or by constructing a product automaton.
+
 ## Tests
 
 To run the milestone 1 tests:
@@ -364,9 +499,24 @@ To run the sequential backend tests:
 python tests_sequential.py
 ```
 
+To run the intersection tests:
+
+```bash
+python tests_intersection.py
+```
+
+A full local test run can be done with:
+
+```bash
+python tests.py
+python tests_regex.py
+python tests_sequential.py
+python tests_intersection.py
+```
+
 ## Current status
 
-The current implementation supports three levels:
+The current implementation supports four levels:
 
 ```text
 Milestone 1:
@@ -387,6 +537,12 @@ regular expressions with Kleene star
 -> NFA
 -> sequential circuit
 -> latch-based AIGER
+
+Milestone 3:
+regular expressions with conjunction
+-> AST with Intersect
+-> bounded logical conjunction
+-> combinational AIGER
 ```
 
 ## Current limitations
@@ -395,20 +551,23 @@ The bounded backend only reasons about candidate strings up to a fixed maximum l
 
 The sequential backend is still experimental and currently uses a simple stream-based input protocol.
 
+Conjunction is currently implemented for the bounded backend, but not yet for the sequential backend.
+
 The project currently does not support:
 
-conjunction &
 full regular-expression syntax
 character classes
 escape handling
 minimization or optimization of automata
 certified AIGER semantic checking with external tools
+sequential conjunction / product automata
 
 ## Future work
 
 Possible future improvements include:
 
-support for conjunction
+sequential conjunction support
+product automaton construction
 richer regular-expression parser
 better alphabet handling
 improved AIGER optimization
@@ -433,8 +592,16 @@ regular expressions with Kleene star
 -> AST
 -> NFA
 -> bounded or sequential AIGER
+
+Milestone 3:
+regular expressions with conjunction
+-> AST with Intersect
+-> bounded logical conjunction
+-> AIGER
 ```
 
 The bounded backend is useful as a simpler intermediate encoding.
 
 The sequential backend introduces latches and moves the project closer to a hardware model checking representation of automata.
+
+The conjunction support extends the regex fragment by allowing two expressions to be required simultaneously.
