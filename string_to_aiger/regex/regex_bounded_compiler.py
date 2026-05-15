@@ -1,8 +1,8 @@
 from .regex_ast import Intersect, Regex
 from .regex_parser import parse_regex
-from nfa_builder import build_nfa
+from string_to_aiger.nfa.nfa_builder import build_nfa
 from string_to_aiger.bounded.bounded_nfa_encoding import compile_nfa_bounded
-from circuit import And, Expr
+from string_to_aiger.logic.circuit import And, Expr
 
 
 def compile_regex_ast_bounded(expr: Regex, bound: int) -> Expr:

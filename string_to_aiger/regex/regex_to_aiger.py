@@ -1,7 +1,7 @@
 from .regex_parser import parse_regex
-from nfa_builder import build_nfa
+from string_to_aiger.nfa.nfa_builder import build_nfa
 from string_to_aiger.bounded.bounded_nfa_encoding import compile_nfa_bounded
-from aiger import compile_expr_to_aiger
+from string_to_aiger.aiger.aiger import compile_expr_to_aiger
 
 
 def compile_regex_to_aiger(pattern: str, bound: int) -> str:

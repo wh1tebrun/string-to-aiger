@@ -1,4 +1,12 @@
-from circuit import BoolConst, InputVar, LengthIs, CharAtIs, And, Or, Expr
+from string_to_aiger.logic.circuit import (
+    BoolConst,
+    InputVar,
+    LengthIs,
+    CharAtIs,
+    And,
+    Or,
+    Expr,
+)
 from .netlist import Input, Const, AndGate, OrGate, Node
 
 

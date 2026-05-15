@@ -1,4 +1,4 @@
-from netlist_builder import NetlistBuilder
+from string_to_aiger.netlist.netlist_builder import NetlistBuilder
 from .aiger_writer import AigerWriter
 
 

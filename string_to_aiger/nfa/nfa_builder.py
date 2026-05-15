@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from regex_ast import Empty, Char, Concat, UnionExpr, Star, Regex
+from string_to_aiger.regex.regex_ast import Empty, Char, Concat, UnionExpr, Star, Regex
 from .nfa import NFA, State
 
 
