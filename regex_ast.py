@@ -29,9 +29,16 @@ class UnionExpr:
 
 
 @dataclass(frozen=True)
+class Intersect:
+    """Represents conjunction / intersection of two regular expressions."""
+    left: "Regex"
+    right: "Regex"
+
+
+@dataclass(frozen=True)
 class Star:
     """Represents Kleene star."""
     expr: "Regex"
 
 
-Regex = Union[Empty, Char, Concat, UnionExpr, Star]
+Regex = Union[Empty, Char, Concat, UnionExpr, Intersect, Star]

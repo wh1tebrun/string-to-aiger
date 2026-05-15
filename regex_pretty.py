@@ -1,4 +1,4 @@
-from regex_ast import Empty, Char, Concat, UnionExpr, Star, Regex
+from regex_ast import Empty, Char, Concat, UnionExpr, Intersect, Star, Regex
 
 
 def pretty_regex(expr: Regex) -> str:
@@ -14,6 +14,9 @@ def pretty_regex(expr: Regex) -> str:
 
     if isinstance(expr, UnionExpr):
         return f"({pretty_regex(expr.left)} | {pretty_regex(expr.right)})"
+
+    if isinstance(expr, Intersect):
+        return f"({pretty_regex(expr.left)} & {pretty_regex(expr.right)})"
 
     if isinstance(expr, Star):
         return f"({pretty_regex(expr.expr)})*"

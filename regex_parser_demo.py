@@ -9,6 +9,9 @@ examples = [
     "a*",
     "(ab)*",
     "(a|ba)*",
+    "a*&b*",
+    "(a|b)*&a*",
+    "(a|ba)*&a*",
 ]
 
 for example in examples:
