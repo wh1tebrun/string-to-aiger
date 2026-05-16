@@ -1,9 +1,8 @@
-
 # string-to-aiger
 
 Prototype compiler from simple string and regular-expression fragments to ASCII AIGER.
 
-The project started with fixed-string disjunctions such as `abba | abb`, was then extended with Kleene star support using automata-based encodings, and now also includes conjunction / intersection support using `&`.
+The project started with fixed-string disjunctions such as abba | abb, was then extended with Kleene star support using automata-based encodings, and now also includes conjunction / intersection support using &.
 
 ---
 
@@ -103,7 +102,7 @@ Generated AIGER files are written to:
 outputs/
 ```
 
-The project root contains the main entry point, runner scripts, documentation, examples, demos, tests, evaluation scripts, generated outputs, and the `string_to_aiger` package.
+The project root contains the main entry point, runner scripts, documentation, examples, demos, tests, evaluation scripts, generated outputs, and the string_to_aiger package.
 
 ---
 
@@ -140,7 +139,7 @@ For milestone 1, the input is a disjunction of fixed concrete strings.
 
 The compiler translates each concrete string into a conjunction of constraints.
 
-For example, `abba` becomes:
+For example, abba becomes:
 
 ```text
 len == 4
@@ -171,20 +170,20 @@ Important files:
 
 | File | Purpose |
 |---|---|
-| `string_to_aiger/fixed/parser.py` | Parses a disjunction of concrete strings. |
-| `string_to_aiger/fixed/model.py` | Defines the internal matcher representation. |
-| `string_to_aiger/fixed/matcher.py` | Directly evaluates the matcher model on candidate strings. |
-| `string_to_aiger/fixed/compiler.py` | Compiles matchers into logical expressions. |
-| `string_to_aiger/logic/circuit.py` | Defines logical expression data structures. |
-| `string_to_aiger/logic/pretty.py` | Provides readable printing of logical expressions. |
-| `string_to_aiger/logic/evaluator.py` | Evaluates compiled expressions on candidate strings. |
-| `string_to_aiger/netlist/netlist.py` | Defines gate-level netlist data structures. |
-| `string_to_aiger/netlist/netlist_builder.py` | Converts logical expressions into a gate-level netlist. |
-| `string_to_aiger/netlist/netlist_pretty.py` | Provides readable printing of netlists. |
-| `string_to_aiger/aiger/aiger_writer.py` | Exports the netlist into ASCII AIGER. |
-| `string_to_aiger/aiger/aiger.py` | High-level wrapper for compiling expressions to AIGER. |
-| `main.py` | Milestone 1 demo entry point. |
-| `tests/tests.py` | Milestone 1 regression tests. |
+| string_to_aiger/fixed/parser.py | Parses a disjunction of concrete strings. |
+| string_to_aiger/fixed/model.py | Defines the internal matcher representation. |
+| string_to_aiger/fixed/matcher.py | Directly evaluates the matcher model on candidate strings. |
+| string_to_aiger/fixed/compiler.py | Compiles matchers into logical expressions. |
+| string_to_aiger/logic/circuit.py | Defines logical expression data structures. |
+| string_to_aiger/logic/pretty.py | Provides readable printing of logical expressions. |
+| string_to_aiger/logic/evaluator.py | Evaluates compiled expressions on candidate strings. |
+| string_to_aiger/netlist/netlist.py | Defines gate-level netlist data structures. |
+| string_to_aiger/netlist/netlist_builder.py | Converts logical expressions into a gate-level netlist. |
+| string_to_aiger/netlist/netlist_pretty.py | Provides readable printing of netlists. |
+| string_to_aiger/aiger/aiger_writer.py | Exports the netlist into ASCII AIGER. |
+| string_to_aiger/aiger/aiger.py | High-level wrapper for compiling expressions to AIGER. |
+| main.py | Milestone 1 demo entry point. |
+| tests/tests.py | Milestone 1 regression tests. |
 
 ---
 
@@ -222,7 +221,7 @@ python tests/tests.py
 
 ## Example expressions
 
-Example expressions can be placed inside files under `examples/`.
+Example expressions can be placed inside files under examples/.
 
 ```text
 abba | abb
@@ -230,7 +229,7 @@ abc | ab
 hello | world
 ```
 
-At the current milestone 1 demo setup, `main.py` reads one selected example file at a time.
+At the current milestone 1 demo setup, main.py reads one selected example file at a time.
 
 ---
 
@@ -319,7 +318,7 @@ The NFA representation contains:
 - symbol transitions
 - epsilon transitions
 
-Epsilon transitions are represented internally with `None`.
+Epsilon transitions are represented internally with None.
 
 For example, Kleene star introduces loops and epsilon transitions, allowing expressions such as:
 
@@ -391,11 +390,11 @@ The sequential circuit uses latches to store the current active NFA states.
 
 The input protocol is stream-based:
 
-- in each normal step, one symbol input such as `is_a` or `is_b` is true
-- in the final step, `end` is true
-- the output `accept` is true iff `end` is true and an accepting state is active
+- in each normal step, one symbol input such as is_a or is_b is true
+- in the final step, end is true
+- the output accept is true iff end is true and an accepting state is active
 
-For example, the word `aaa` for the expression `a*` is represented as:
+For example, the word aaa for the expression a* is represented as:
 
 ```text
 step 1: is_a = true,  end = false
@@ -404,7 +403,7 @@ step 3: is_a = true,  end = false
 step 4: is_a = false, end = true
 ```
 
-This backend produces AIGER files with `L > 0`, meaning that latches are present.
+This backend produces AIGER files with L > 0, meaning that latches are present.
 
 ---
 
@@ -414,20 +413,20 @@ The following components have been implemented for milestone 2:
 
 | File | Purpose |
 |---|---|
-| `string_to_aiger/regex/regex_ast.py` | Defines regex AST node types such as `Empty`, `Char`, `Concat`, `UnionExpr`, `Star`, and `Intersect`. |
-| `string_to_aiger/regex/regex_pretty.py` | Provides readable printing of regex ASTs. |
-| `string_to_aiger/regex/regex_parser.py` | Parses the supported regular-expression fragment. |
-| `string_to_aiger/nfa/nfa.py` | Defines the NFA data structure. |
-| `string_to_aiger/nfa/nfa_builder.py` | Constructs an NFA from a regex AST. |
-| `string_to_aiger/nfa/nfa_evaluator.py` | Directly evaluates NFAs on candidate strings. |
-| `string_to_aiger/bounded/bounded_nfa_encoding.py` | Encodes an NFA as a bounded combinational logical expression. |
-| `string_to_aiger/regex/regex_to_aiger.py` | Provides a high-level wrapper from regex pattern and bound to ASCII AIGER. |
-| `string_to_aiger/sequential/sequential_circuit.py` | Defines the intermediate representation for sequential circuits. |
-| `string_to_aiger/sequential/sequential_aiger_writer.py` | Writes latch-based ASCII AIGER files. |
-| `string_to_aiger/sequential/sequential_simulator.py` | Simulates sequential circuits in Python. |
-| `string_to_aiger/sequential/nfa_to_sequential.py` | Translates a generic NFA into a sequential circuit. |
-| `tests/tests_regex.py` | Tests regex parsing, NFA evaluation, bounded encoding, and AIGER output. |
-| `tests/tests_sequential.py` | Tests the sequential backend. |
+| string_to_aiger/regex/regex_ast.py | Defines regex AST node types such as Empty, Char, Concat, UnionExpr, Star, and Intersect. |
+| string_to_aiger/regex/regex_pretty.py | Provides readable printing of regex ASTs. |
+| string_to_aiger/regex/regex_parser.py | Parses the supported regular-expression fragment. |
+| string_to_aiger/nfa/nfa.py | Defines the NFA data structure. |
+| string_to_aiger/nfa/nfa_builder.py | Constructs an NFA from a regex AST. |
+| string_to_aiger/nfa/nfa_evaluator.py | Directly evaluates NFAs on candidate strings. |
+| string_to_aiger/bounded/bounded_nfa_encoding.py | Encodes an NFA as a bounded combinational logical expression. |
+| string_to_aiger/regex/regex_to_aiger.py | Provides a high-level wrapper from regex pattern and bound to ASCII AIGER. |
+| string_to_aiger/sequential/sequential_circuit.py | Defines the intermediate representation for sequential circuits. |
+| string_to_aiger/sequential/sequential_aiger_writer.py | Writes latch-based ASCII AIGER files. |
+| string_to_aiger/sequential/sequential_simulator.py | Simulates sequential circuits in Python. |
+| string_to_aiger/sequential/nfa_to_sequential.py | Translates a generic NFA into a sequential circuit. |
+| tests/tests_regex.py | Tests regex parsing, NFA evaluation, bounded encoding, and AIGER output. |
+| tests/tests_sequential.py | Tests the sequential backend. |
 
 ---
 
@@ -463,13 +462,13 @@ To compile a regex directly to bounded AIGER:
 python demos/regex_to_aiger_demo.py
 ```
 
-To run the manual sequential `a*` demo:
+To run the manual sequential a* demo:
 
 ```bash
 python demos/sequential_astar_demo.py
 ```
 
-To simulate the manual sequential `a*` circuit:
+To simulate the manual sequential a* circuit:
 
 ```bash
 python demos/sequential_astar_sim_demo.py
@@ -491,7 +490,7 @@ outputs/
 
 ## Milestone 3: Conjunction / intersection support
 
-Milestone 3 adds support for conjunction, written as `&`.
+Milestone 3 adds support for conjunction, written as &.
 
 The expression:
 
@@ -501,7 +500,7 @@ The expression:
 
 means that a candidate string must satisfy both regular expressions at the same time.
 
-In this example, `(a|b)*` accepts all strings over `a` and `b`, while `a*` accepts only strings consisting of `a`.
+In this example, (a|b)* accepts all strings over a and b, while a* accepts only strings consisting of a.
 
 Therefore, their intersection behaves like:
 
@@ -513,7 +512,7 @@ a*
 
 ## Milestone 3 parser support
 
-The regex parser now supports the `&` operator.
+The regex parser now supports the & operator.
 
 The precedence order is:
 
@@ -564,7 +563,7 @@ For example:
 (a|b)*&a*
 ```
 
-is compiled by generating bounded encodings for both `(a|b)*` and `a*`, then combining them with `AND`.
+is compiled by generating bounded encodings for both (a|b)* and a*, then combining them with AND.
 
 This produces a combinational AIGER circuit.
 
@@ -621,14 +620,14 @@ The following components were added or extended for milestone 3:
 
 | File | Purpose |
 |---|---|
-| `string_to_aiger/regex/regex_ast.py` | Adds the `Intersect` AST node for conjunction / intersection. |
-| `string_to_aiger/regex/regex_pretty.py` | Adds readable printing support for `Intersect`. |
-| `string_to_aiger/regex/regex_parser.py` | Adds parsing support for the `&` operator. |
-| `string_to_aiger/regex/regex_bounded_compiler.py` | Compiles regex ASTs with bounded intersection support. |
-| `string_to_aiger/sequential/sequential_intersection.py` | Provides helpers for merging sequential circuits for conjunction. |
-| `string_to_aiger/sequential/sequential_regex_compiler.py` | Compiles regex ASTs into sequential circuits, including `Intersect`. |
-| `tests/tests_intersection.py` | Tests bounded conjunction behavior and AIGER output. |
-| `tests/tests_sequential_intersection.py` | Tests sequential conjunction behavior and latch-based AIGER output. |
+| string_to_aiger/regex/regex_ast.py | Adds the Intersect AST node for conjunction / intersection. |
+| string_to_aiger/regex/regex_pretty.py | Adds readable printing support for Intersect. |
+| string_to_aiger/regex/regex_parser.py | Adds parsing support for the & operator. |
+| string_to_aiger/regex/regex_bounded_compiler.py | Compiles regex ASTs with bounded intersection support. |
+| string_to_aiger/sequential/sequential_intersection.py | Provides helpers for merging sequential circuits for conjunction. |
+| string_to_aiger/sequential/sequential_regex_compiler.py | Compiles regex ASTs into sequential circuits, including Intersect. |
+| tests/tests_intersection.py | Tests bounded conjunction behavior and AIGER output. |
+| tests/tests_sequential_intersection.py | Tests sequential conjunction behavior and latch-based AIGER output. |
 
 ---
 
@@ -676,7 +675,7 @@ a*&b*
 
 The bounded backend produces combinational AIGER.
 
-The sequential backend produces latch-based AIGER with `L > 0`.
+The sequential backend produces latch-based AIGER with L > 0.
 
 ---
 
@@ -697,11 +696,11 @@ aag M I L O A
 
 where:
 
-- `M` is the maximum variable index
-- `I` is the number of inputs
-- `L` is the number of latches
-- `O` is the number of outputs
-- `A` is the number of AND gates
+- M is the maximum variable index
+- I is the number of inputs
+- L is the number of latches
+- O is the number of outputs
+- A is the number of AND gates
 
 The language behavior validation checks whether the bounded and sequential backends agree with manually specified expected results for selected candidate strings.
 
@@ -713,13 +712,13 @@ The following evaluation files are currently used:
 
 | File | Purpose |
 |---|---|
-| `evaluation/evaluate_aiger_stats.py` | Compares AIGER header statistics for bounded and sequential backends. |
-| `evaluation/evaluate_language_behavior.py` | Validates language behavior on selected candidate strings. |
-| `evaluation/aiger_stats.csv` | CSV output for AIGER statistics. |
-| `evaluation/aiger_stats.md` | Markdown table output for AIGER statistics. |
-| `evaluation/language_behavior.csv` | CSV output for language behavior validation. |
-| `evaluation/language_behavior.md` | Markdown table output for language behavior validation. |
-| `run_all_evaluations.py` | Runs all evaluation scripts. |
+| evaluation/evaluate_aiger_stats.py | Compares AIGER header statistics for bounded and sequential backends. |
+| evaluation/evaluate_language_behavior.py | Validates language behavior on selected candidate strings. |
+| evaluation/aiger_stats.csv | CSV output for AIGER statistics. |
+| evaluation/aiger_stats.md | Markdown table output for AIGER statistics. |
+| evaluation/language_behavior.csv | CSV output for language behavior validation. |
+| evaluation/language_behavior.md | Markdown table output for language behavior validation. |
+| run_all_evaluations.py | Runs all evaluation scripts. |
 
 ---
 
@@ -756,6 +755,55 @@ These files can be used directly in the project report or presentation.
 
 ---
 
+## Command-line interface
+
+The project provides a command-line interface through the Python module entry point:
+
+```bash
+python -m string_to_aiger
+```
+
+The CLI supports two backends:
+
+- bounded
+- sequential
+
+For the bounded backend, a maximum word length must be selected with --bound.
+
+Example bounded compilation:
+
+```bash
+python -m string_to_aiger --pattern "(a|b)*&a*" --backend bounded --bound 4 --output outputs/cli_bounded.aag
+```
+
+Example sequential compilation:
+
+```bash
+python -m string_to_aiger --pattern "(a|b)*&a*" --backend sequential --output outputs/cli_sequential.aag
+```
+
+The default output path is:
+
+```text
+outputs/cli_output.aag
+```
+
+If no pattern is provided, the CLI prints a usage message because --pattern is required.
+
+---
+
+## CLI files
+
+The command-line interface is implemented by:
+
+| File | Purpose |
+|---|---|
+| string_to_aiger/cli.py | Defines the CLI argument parser and compiler dispatch logic. |
+| string_to_aiger/__main__.py | Enables python -m string_to_aiger. |
+| tests/tests_cli.py | Tests bounded CLI compilation, sequential CLI compilation, and missing-pattern handling. |
+
+---
+
 ## Tests
 
 To run the milestone 1 tests:
@@ -788,6 +836,12 @@ To run the sequential intersection tests:
 python tests/tests_sequential_intersection.py
 ```
 
+To run the CLI tests:
+
+```bash
+python tests/tests_cli.py
+```
+
 A full local test run can be done with:
 
 ```bash
@@ -802,6 +856,7 @@ python tests/tests_regex.py
 python tests/tests_sequential.py
 python tests/tests_intersection.py
 python tests/tests_sequential_intersection.py
+python tests/tests_cli.py
 ```
 
 ---
@@ -828,17 +883,19 @@ outputs/
 
 Examples include:
 
-- `outputs/output.aag`
-- `outputs/regex_output.aag`
-- `outputs/bounded_output_astar.aag`
-- `outputs/sequential_astar.aag`
-- `outputs/sequential_generic_astar.aag`
-- `outputs/intersection_output__aorb_staranda_star.aag`
-- `outputs/sequential_intersection_output.aag`
+- outputs/output.aag
+- outputs/regex_output.aag
+- outputs/bounded_output_astar.aag
+- outputs/sequential_astar.aag
+- outputs/sequential_generic_astar.aag
+- outputs/intersection_output__aorb_staranda_star.aag
+- outputs/sequential_intersection_output.aag
+- outputs/cli_bounded.aag
+- outputs/cli_sequential.aag
 
-The exact file names depend on the demo and the regex pattern being compiled.
+The exact file names depend on the demo, CLI command, and the regex pattern being compiled.
 
-Generated `.aag` files are ignored by Git because they can be regenerated from the demo scripts.
+Generated .aag files are ignored by Git because they can be regenerated from the demo scripts or CLI commands.
 
 ---
 
@@ -881,6 +938,8 @@ regular expressions with conjunction
 
 Milestone 4 adds evaluation and validation scripts for the generated AIGER circuits.
 
+The CLI provides a direct compiler interface for bounded and sequential AIGER generation.
+
 ---
 
 ## Current limitations
@@ -910,9 +969,9 @@ Possible future improvements include:
 - external validation with AIGER tools
 - comparison with external model checkers
 - integration with hardware model checking workflows
-- packaging improvements such as `pyproject.toml`
-- optional CLI entry point
+- packaging improvements such as pyproject.toml
 - more systematic benchmark generation
+- additional CLI options such as reading patterns from files
 
 ---
 
@@ -943,6 +1002,7 @@ Milestone 4:
 generated AIGER circuits
 -> statistics comparison
 -> language behavior validation
+-> command-line compilation interface
 ```
 
 The bounded backend is useful as a simpler intermediate encoding.
@@ -952,4 +1012,5 @@ The sequential backend introduces latches and moves the project closer to a hard
 The conjunction support extends the regex fragment by allowing two expressions to be required simultaneously.
 
 The evaluation scripts provide initial evidence that the generated circuits behave correctly on selected benchmark examples.
-```
+
+The command-line interface makes the compiler easier to use as a small standalone tool.
