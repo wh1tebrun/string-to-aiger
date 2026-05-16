@@ -1,0 +1,37 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "string-to-aiger"
+version = "0.1.0"
+description = "Prototype compiler from simple string and regular-expression fragments to ASCII AIGER."
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [
+    { name = "Ege Tekin" }
+]
+license = { text = "MIT" }
+keywords = [
+    "aiger",
+    "regular-expressions",
+    "automata",
+    "model-checking",
+    "sat",
+    "compiler"
+]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering",
+    "Topic :: Software Development :: Compilers"
+]
+
+[project.scripts]
+string-to-aiger = "string_to_aiger.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["string_to_aiger*"]
