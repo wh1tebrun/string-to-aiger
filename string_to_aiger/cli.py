@@ -18,6 +18,16 @@ def compile_sequential(pattern: str) -> str:
     return writer.write()
 
 
+def read_pattern_from_file(path: str) -> str:
+    with open(path, "r", encoding="utf-8") as f:
+        pattern = f.read().strip()
+
+    if not pattern:
+        raise ValueError(f"Input file is empty: {path}")
+
+    return pattern
+
+
 def write_output(path: str, aiger_text: str) -> None:
     output_dir = os.path.dirname(path)
 
@@ -34,10 +44,16 @@ def build_parser() -> argparse.ArgumentParser:
         description="Compile small string / regex fragments to ASCII AIGER.",
     )
 
-    parser.add_argument(
+    pattern_source = parser.add_mutually_exclusive_group(required=True)
+
+    pattern_source.add_argument(
         "--pattern",
-        required=True,
         help="Input pattern, for example: '(a|b)*&a*'",
+    )
+
+    pattern_source.add_argument(
+        "--input-file",
+        help="Path to a text file containing the input pattern.",
     )
 
     parser.add_argument(
@@ -70,14 +86,23 @@ def main() -> int:
     if args.bound < 0:
         parser.error("--bound must be non-negative")
 
-    if args.backend == "bounded":
-        aiger_text = compile_bounded(args.pattern, args.bound)
-    else:
-        aiger_text = compile_sequential(args.pattern)
+    try:
+        if args.input_file is not None:
+            pattern = read_pattern_from_file(args.input_file)
+        else:
+            pattern = args.pattern
 
-    write_output(args.output, aiger_text)
+        if args.backend == "bounded":
+            aiger_text = compile_bounded(pattern, args.bound)
+        else:
+            aiger_text = compile_sequential(pattern)
 
-    print("Pattern:", args.pattern)
+        write_output(args.output, aiger_text)
+
+    except ValueError as error:
+        parser.error(str(error))
+
+    print("Pattern:", pattern)
     print("Backend:", args.backend)
 
     if args.backend == "bounded":
