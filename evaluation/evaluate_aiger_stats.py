@@ -9,6 +9,7 @@ EVALUATION_DIR = os.path.dirname(__file__)
 sys.path.append(ROOT_DIR)
 os.makedirs(EVALUATION_DIR, exist_ok=True)
 
+from evaluation.benchmark_cases import BENCHMARK_CASES  # noqa: E402
 from string_to_aiger.regex.regex_bounded_compiler import compile_regex_bounded  # noqa: E402
 from string_to_aiger.aiger.aiger import compile_expr_to_aiger  # noqa: E402
 from string_to_aiger.sequential.sequential_regex_compiler import compile_regex_to_sequential  # noqa: E402
@@ -183,21 +184,21 @@ def write_markdown(stats: list[AigerStats], path: str) -> None:
 
 
 def collect_stats() -> list[AigerStats]:
-    benchmarks = [
-        ("a*", 3),
-        ("(ab)*", 6),
-        ("(a|b)*", 4),
-        ("(a|ba)*", 5),
-        ("(a|b)*&a*", 4),
-        ("(ab)*&(a|b)*", 6),
-        ("a*&b*", 4),
-    ]
-
     all_stats: list[AigerStats] = []
 
-    for pattern, bound in benchmarks:
-        all_stats.append(compile_bounded_stats(pattern, bound))
-        all_stats.append(compile_sequential_stats(pattern))
+    for benchmark in BENCHMARK_CASES:
+        all_stats.append(
+            compile_bounded_stats(
+                benchmark.pattern,
+                benchmark.bound,
+            )
+        )
+
+        all_stats.append(
+            compile_sequential_stats(
+                benchmark.pattern,
+            )
+        )
 
     return all_stats
 

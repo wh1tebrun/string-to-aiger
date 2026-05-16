@@ -9,6 +9,7 @@ EVALUATION_DIR = os.path.dirname(__file__)
 sys.path.append(ROOT_DIR)
 os.makedirs(EVALUATION_DIR, exist_ok=True)
 
+from evaluation.benchmark_cases import iter_expected_words  # noqa: E402
 from string_to_aiger.regex.regex_bounded_compiler import compile_regex_bounded  # noqa: E402
 from string_to_aiger.logic.evaluator import evaluate  # noqa: E402
 from string_to_aiger.sequential.sequential_regex_compiler import compile_regex_to_sequential  # noqa: E402
@@ -63,72 +64,13 @@ def sequential_accepts(pattern: str, word: str) -> bool:
 
 def collect_cases() -> list[BehaviorCase]:
     return [
-        # a*
-        BehaviorCase("a*", 3, "", True),
-        BehaviorCase("a*", 3, "a", True),
-        BehaviorCase("a*", 3, "aa", True),
-        BehaviorCase("a*", 3, "aaa", True),
-        BehaviorCase("a*", 3, "b", False),
-        BehaviorCase("a*", 3, "ab", False),
-        BehaviorCase("a*", 3, "ba", False),
-
-        # (ab)*
-        BehaviorCase("(ab)*", 6, "", True),
-        BehaviorCase("(ab)*", 6, "ab", True),
-        BehaviorCase("(ab)*", 6, "abab", True),
-        BehaviorCase("(ab)*", 6, "ababab", True),
-        BehaviorCase("(ab)*", 6, "a", False),
-        BehaviorCase("(ab)*", 6, "b", False),
-        BehaviorCase("(ab)*", 6, "aba", False),
-        BehaviorCase("(ab)*", 6, "abb", False),
-
-        # (a|b)*
-        BehaviorCase("(a|b)*", 4, "", True),
-        BehaviorCase("(a|b)*", 4, "a", True),
-        BehaviorCase("(a|b)*", 4, "b", True),
-        BehaviorCase("(a|b)*", 4, "ab", True),
-        BehaviorCase("(a|b)*", 4, "ba", True),
-        BehaviorCase("(a|b)*", 4, "abba", True),
-        BehaviorCase("(a|b)*", 4, "abc", False),
-
-        # (a|ba)*
-        BehaviorCase("(a|ba)*", 5, "", True),
-        BehaviorCase("(a|ba)*", 5, "a", True),
-        BehaviorCase("(a|ba)*", 5, "ba", True),
-        BehaviorCase("(a|ba)*", 5, "aba", True),
-        BehaviorCase("(a|ba)*", 5, "baa", True),
-        BehaviorCase("(a|ba)*", 5, "ababa", True),
-        BehaviorCase("(a|ba)*", 5, "b", False),
-        BehaviorCase("(a|ba)*", 5, "bb", False),
-
-        # (a|b)* & a*
-        BehaviorCase("(a|b)*&a*", 4, "", True),
-        BehaviorCase("(a|b)*&a*", 4, "a", True),
-        BehaviorCase("(a|b)*&a*", 4, "aa", True),
-        BehaviorCase("(a|b)*&a*", 4, "aaa", True),
-        BehaviorCase("(a|b)*&a*", 4, "aaaa", True),
-        BehaviorCase("(a|b)*&a*", 4, "b", False),
-        BehaviorCase("(a|b)*&a*", 4, "ab", False),
-        BehaviorCase("(a|b)*&a*", 4, "ba", False),
-
-        # (ab)* & (a|b)*
-        BehaviorCase("(ab)*&(a|b)*", 6, "", True),
-        BehaviorCase("(ab)*&(a|b)*", 6, "ab", True),
-        BehaviorCase("(ab)*&(a|b)*", 6, "abab", True),
-        BehaviorCase("(ab)*&(a|b)*", 6, "ababab", True),
-        BehaviorCase("(ab)*&(a|b)*", 6, "a", False),
-        BehaviorCase("(ab)*&(a|b)*", 6, "b", False),
-        BehaviorCase("(ab)*&(a|b)*", 6, "aba", False),
-        BehaviorCase("(ab)*&(a|b)*", 6, "abb", False),
-
-        # a* & b*
-        BehaviorCase("a*&b*", 4, "", True),
-        BehaviorCase("a*&b*", 4, "a", False),
-        BehaviorCase("a*&b*", 4, "aa", False),
-        BehaviorCase("a*&b*", 4, "b", False),
-        BehaviorCase("a*&b*", 4, "bb", False),
-        BehaviorCase("a*&b*", 4, "ab", False),
-        BehaviorCase("a*&b*", 4, "ba", False),
+        BehaviorCase(
+            pattern=pattern,
+            bound=bound,
+            word=word,
+            expected=expected,
+        )
+        for pattern, bound, word, expected in iter_expected_words()
     ]
 
 
