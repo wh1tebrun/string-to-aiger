@@ -5,7 +5,10 @@ from string_to_aiger.regex.regex_parser import parse_regex
 from string_to_aiger.regex.regex_length import regex_length, is_bound_complete
 from string_to_aiger.regex.regex_bounded_compiler import compile_regex_bounded
 from string_to_aiger.aiger.aiger import compile_expr_to_aiger
-from string_to_aiger.aiger.aiger_validator import validate_aiger
+from string_to_aiger.aiger.aiger_pipeline import (
+    validate_and_write_aiger,
+    write_aiger_without_validation,
+)
 from string_to_aiger.sequential.sequential_regex_compiler import compile_regex_to_sequential
 from string_to_aiger.sequential.sequential_aiger_writer import SequentialAigerWriter
 
@@ -29,16 +32,6 @@ def read_pattern_from_file(path: str) -> str:
         raise ValueError(f"Input file is empty: {path}")
 
     return pattern
-
-
-def write_output(path: str, aiger_text: str) -> None:
-    output_dir = os.path.dirname(path)
-
-    if output_dir:
-        os.makedirs(output_dir, exist_ok=True)
-
-    with open(path, "w", encoding="utf-8") as f:
-        f.write(aiger_text)
 
 
 def max_length_text(max_length: int | None) -> str:
@@ -140,12 +133,11 @@ def main() -> int:
             aiger_text = compile_sequential(pattern)
 
         if args.skip_validation:
+            write_aiger_without_validation(args.output, aiger_text)
             validation_status = "skipped"
         else:
-            validate_aiger(aiger_text)
+            validate_and_write_aiger(args.output, aiger_text)
             validation_status = "passed"
-
-        write_output(args.output, aiger_text)
 
     except ValueError as error:
         parser.error(str(error))

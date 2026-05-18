@@ -18,6 +18,7 @@ TEST_COMMANDS = [
     ["tests/tests_nfa_prune.py"],
     ["tests/tests_nfa_optimize.py"],
     ["tests/tests_aiger_validator.py"],
+    ["tests/tests_aiger_pipeline.py"],
 ]
 
 
