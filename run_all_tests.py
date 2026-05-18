@@ -5,6 +5,7 @@ import sys
 TEST_COMMANDS = [
     ["tests/tests.py"],
     ["tests/tests_regex.py"],
+    ["tests/tests_regex_length.py"],
     ["tests/tests_sequential.py"],
     ["tests/tests_sequential_trace.py"],
     ["tests/tests_intersection.py"],
