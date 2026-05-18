@@ -1,7 +1,4 @@
-Kanka mevcut README’de eski limitation’lar ve eski evaluation/CLI anlatımı kalmıştı; aşağıdaki sürümde onları güncelledim. 
-
-```text
-# string-to-aiger
+ERKE string-to-aiger
 
 Prototype compiler from simple string and regular-expression fragments to ASCII AIGER.
 
@@ -9,22 +6,22 @@ The project started with fixed-string disjunctions such as `abba | abb`, was the
 
 ---
 
-## Current supported fragments
+ERKEERKE Current supported fragments
 
 Milestone 1 supports disjunctions of concrete fixed strings:
 
-```text
+EGEtext
 abba | abb | abbreviation
-```
+EGE
 
 Milestone 2 extends this with regular-expression support based on regex ASTs and NFAs:
 
-```text
+EGEtext
 a*
 (ab)*
 (a|b)*
 (a|ba)*
-```
+EGE
 
 The supported regex fragment now includes:
 
@@ -44,7 +41,7 @@ The supported regex fragment now includes:
 
 Examples:
 
-```text
+EGEtext
 a+
 a?
 a{3}
@@ -54,15 +51,15 @@ a{2,}
 [a-c]{2,4}
 a\*
 (a|b)*&a*
-```
+EGE
 
 Milestone 3 adds conjunction / intersection support:
 
-```text
+EGEtext
 (a|b)*&a*
 (ab)*&(a|b)*
 a*&b*
-```
+EGE
 
 The project currently supports conjunction in two backend families:
 
@@ -76,35 +73,35 @@ Intersection can be compiled using two strategies:
 
 ---
 
-## High-level goal
+ERKEERKE High-level goal
 
 The goal is to translate string and regular-expression constraints into AIGER circuits.
 
 The long-term idea is:
 
-```text
+EGEtext
 string / regex problem
 -> logical or automata-based representation
 -> circuit
 -> AIGER
 -> SAT / model checking tools
-```
+EGE
 
 This makes it possible to represent string constraints in a hardware verification format.
 
 ---
 
-## Project organization
+ERKEERKE Project organization
 
 The source code is organized as a Python package under:
 
-```text
+EGEtext
 string_to_aiger/
-```
+EGE
 
 The package is divided into submodules:
 
-```text
+EGEtext
 string_to_aiger/
 ├── fixed/
 ├── logic/
@@ -114,64 +111,64 @@ string_to_aiger/
 ├── nfa/
 ├── bounded/
 └── sequential/
-```
+EGE
 
 Demo scripts are stored under:
 
-```text
+EGEtext
 demos/
-```
+EGE
 
 Test scripts are stored under:
 
-```text
+EGEtext
 tests/
-```
+EGE
 
 Evaluation scripts and generated evaluation tables are stored under:
 
-```text
+EGEtext
 evaluation/
-```
+EGE
 
 Generated AIGER files are written to:
 
-```text
+EGEtext
 outputs/
-```
+EGE
 
 The project root contains the main entry point, runner scripts, documentation, examples, demos, tests, evaluation scripts, generated outputs, packaging metadata, and the `string_to_aiger` package.
 
 ---
 
-## Milestone 1 pipeline
+ERKEERKE Milestone 1 pipeline
 
 For fixed-string disjunctions, the pipeline is:
 
-```text
+EGEtext
 expression
 -> parser
 -> model
 -> logical expression
 -> netlist
 -> ASCII AIGER
-```
+EGE
 
 Example input:
 
-```text
+EGEtext
 abba | abb
-```
+EGE
 
 This expression represents the language:
 
-```text
+EGEtext
 L = {"abba", "abb"}
-```
+EGE
 
 ---
 
-## Milestone 1 encoding approach
+ERKEERKE Milestone 1 encoding approach
 
 For milestone 1, the input is a disjunction of fixed concrete strings.
 
@@ -179,13 +176,13 @@ The compiler translates each concrete string into a conjunction of constraints.
 
 For example, `abba` becomes:
 
-```text
+EGEtext
 len == 4
 x[0] == 'a'
 x[1] == 'b'
 x[2] == 'b'
 x[3] == 'a'
-```
+EGE
 
 A disjunction of strings is then encoded as an OR of these conjunctions.
 
@@ -193,16 +190,16 @@ This is sufficient for black/white lists, because all accepted strings are known
 
 ---
 
-## Milestone 1 files
+ERKEERKE Milestone 1 files
 
 The milestone 1 implementation is mainly located in:
 
-```text
+EGEtext
 string_to_aiger/fixed/
 string_to_aiger/logic/
 string_to_aiger/netlist/
 string_to_aiger/aiger/
-```
+EGE
 
 Important files:
 
@@ -225,50 +222,50 @@ Important files:
 
 ---
 
-## Milestone 1 demo
+ERKEERKE Milestone 1 demo
 
 To run the fixed-string disjunction demo:
 
-```bash
+EGEbash
 python main.py
-```
+EGE
 
 The current demo reads one selected example file:
 
-```text
+EGEtext
 examples/test1.txt
-```
+EGE
 
 and writes the generated AIGER circuit to:
 
-```text
+EGEtext
 outputs/output.aag
-```
+EGE
 
 ---
 
-## Milestone 1 tests
+ERKEERKE Milestone 1 tests
 
 To run the milestone 1 tests:
 
-```bash
+EGEbash
 python tests/tests.py
-```
+EGE
 
 ---
 
-## Example expressions
+ERKEERKE Example expressions
 
 Example expressions can be placed inside files under `examples/`.
 
-```text
+EGEtext
 abba | abb
 abc | ab
 hello | world
 (a|b)*&a*
 a{1,3}
 [ab]{2,}
-```
+EGE
 
 At the current milestone 1 demo setup, `main.py` reads one selected example file at a time.
 
@@ -276,117 +273,117 @@ For the CLI, patterns can also be provided directly with `--pattern` or read fro
 
 ---
 
-## Milestone 2: Regular expressions and Kleene star support
+ERKEERKE Milestone 2: Regular expressions and Kleene star support
 
 Milestone 2 extends the project from fixed-string disjunctions toward regular expressions with Kleene star.
 
 The implemented milestone 2 bounded pipeline is:
 
-```text
+EGEtext
 regular expression
 -> regex AST
 -> NFA
 -> bounded combinational logical expression
 -> netlist
 -> ASCII AIGER
-```
+EGE
 
 The supported examples include:
 
-```text
+EGEtext
 a*
 (ab)*
 (a|b)*
 (a|ba)*
-```
+EGE
 
 The parser has since been extended with additional operators such as `+`, `?`, `{n}`, `{m,n}`, `{m,}`, character classes, character ranges, and escaping.
 
 ---
 
-## Regex AST
+ERKEERKE Regex AST
 
 For milestone 2 and milestone 3, a separate regex AST representation was introduced.
 
 The main AST nodes are:
 
-```text
+EGEtext
 Empty
 Char
 Concat
 UnionExpr
 Star
 Intersect
-```
+EGE
 
 Several parser-level operators are desugared into these core AST nodes.
 
 For example:
 
-```text
+EGEtext
 a+
-```
+EGE
 
 is represented using:
 
-```text
+EGEtext
 Concat(Char("a"), Star(Char("a")))
-```
+EGE
 
 The expression:
 
-```text
+EGEtext
 a?
-```
+EGE
 
 is represented using:
 
-```text
+EGEtext
 UnionExpr(Empty(), Char("a"))
-```
+EGE
 
 The expression:
 
-```text
+EGEtext
 a{1,3}
-```
+EGE
 
 is represented as a concatenation of the required part and optional repetitions.
 
 For example, the expression:
 
-```text
+EGEtext
 (a|ba)*
-```
+EGE
 
 is represented as a tree containing:
 
-```text
+EGEtext
 Star
 └── UnionExpr
     ├── Char("a")
     └── Concat
         ├── Char("b")
         └── Char("a")
-```
+EGE
 
 For intersection, the expression:
 
-```text
+EGEtext
 (a|b)*&a*
-```
+EGE
 
 is represented using:
 
-```text
+EGEtext
 Intersect(left, right)
-```
+EGE
 
 This separates the structure of the regular expression from the later compilation steps.
 
 ---
 
-## NFA construction
+ERKEERKE NFA construction
 
 After parsing, the regex AST is translated into an NFA.
 
@@ -401,10 +398,10 @@ Epsilon transitions are represented internally with `None`.
 
 For example, Kleene star introduces loops and epsilon transitions, allowing expressions such as:
 
-```text
+EGEtext
 a*
 (ab)*
-```
+EGE
 
 to accept repeated occurrences, including the empty string.
 
@@ -419,38 +416,38 @@ These are not full automata minimization, but they provide basic cleanup and ana
 
 ---
 
-## Bounded combinational encoding
+ERKEERKE Bounded combinational encoding
 
 The bounded backend uses bounded combinational encoding.
 
 This means that a fixed bound is chosen, for example:
 
-```text
+EGEtext
 bound = 3
-```
+EGE
 
 The NFA is then unrolled up to this bound.
 
 For example, the expression:
 
-```text
+EGEtext
 a*
-```
+EGE
 
 with bound 3 accepts:
 
-```text
+EGEtext
 ""
 "a"
 "aa"
 "aaa"
-```
+EGE
 
 but rejects:
 
-```text
+EGEtext
 "aaaa"
-```
+EGE
 
 because the word length exceeds the chosen bound.
 
@@ -465,16 +462,16 @@ The project also includes regex length analysis. For a given regex AST, it compu
 
 For example:
 
-```text
+EGEtext
 a{1,3} -> min length = 1, max length = 3
 a*     -> min length = 0, max length = unbounded
-```
+EGE
 
 The CLI reports this information for bounded compilation.
 
 ---
 
-## Sequential latch-based backend
+ERKEERKE Sequential latch-based backend
 
 In addition to the bounded combinational backend, a sequential backend was added.
 
@@ -482,13 +479,13 @@ This backend translates an NFA into a sequential circuit with latches.
 
 The pipeline is:
 
-```text
+EGEtext
 regular expression
 -> regex AST
 -> NFA
 -> sequential circuit
 -> latch-based ASCII AIGER
-```
+EGE
 
 The sequential circuit uses latches to store the current active NFA states.
 
@@ -501,12 +498,12 @@ The input protocol is stream-based:
 
 For example, the word `aaa` for the expression `a*` is represented as:
 
-```text
+EGEtext
 step 1: is_a = true, end = false
 step 2: is_a = true, end = false
 step 3: is_a = true, end = false
 step 4: end = true
-```
+EGE
 
 The simulator validates traces before simulation.
 
@@ -524,7 +521,7 @@ This backend produces AIGER files with `L > 0`, meaning that latches are present
 
 ---
 
-## Milestone 2 files
+ERKEERKE Milestone 2 files
 
 The following components are used for milestone 2 and later regex support:
 
@@ -555,73 +552,73 @@ The following components are used for milestone 2 and later regex support:
 
 ---
 
-## Run milestone 2 demos
+ERKEERKE Run milestone 2 demos
 
 To run the regex parser demo:
 
-```bash
+EGEbash
 python demos/regex_parser_demo.py
-```
+EGE
 
 To inspect generated NFAs:
 
-```bash
+EGEbash
 python demos/nfa_demo.py
-```
+EGE
 
 To run the direct NFA evaluator demo:
 
-```bash
+EGEbash
 python demos/nfa_evaluator_demo.py
-```
+EGE
 
 To run the bounded NFA demo:
 
-```bash
+EGEbash
 python demos/bounded_nfa_demo.py
-```
+EGE
 
 To compile a regex directly to bounded AIGER:
 
-```bash
+EGEbash
 python demos/regex_to_aiger_demo.py
-```
+EGE
 
 To run the manual sequential `a*` demo:
 
-```bash
+EGEbash
 python demos/sequential_astar_demo.py
-```
+EGE
 
 To simulate the manual sequential `a*` circuit:
 
-```bash
+EGEbash
 python demos/sequential_astar_sim_demo.py
-```
+EGE
 
 To run the generic NFA-to-sequential demo:
 
-```bash
+EGEbash
 python demos/nfa_to_sequential_demo.py
-```
+EGE
 
 Generated AIGER files from these demos are written to:
 
-```text
+EGEtext
 outputs/
-```
+EGE
 
 ---
 
-## Milestone 3: Conjunction / intersection support
+ERKEERKE Milestone 3: Conjunction / intersection support
 
 Milestone 3 adds support for conjunction, written as `&`.
 
 The expression:
 
-```text
+EGEtext
 ((a|b)*) & (a*)
-```
+EGE
 
 means that a candidate string must satisfy both regular expressions at the same time.
 
@@ -629,64 +626,64 @@ In this example, `(a|b)*` accepts all strings over `a` and `b`, while `a*` accep
 
 Therefore, their intersection behaves like:
 
-```text
+EGEtext
 a*
-```
+EGE
 
 ---
 
-## Milestone 3 parser support
+ERKEERKE Milestone 3 parser support
 
 The regex parser supports the `&` operator.
 
 The precedence order is:
 
-```text
+EGEtext
 1. repetition operators: *, +, ?, {n}, {m,n}, {m,}
 2. concatenation
 3. &
 4. |
-```
+EGE
 
 For example:
 
-```text
+EGEtext
 a|b&c
-```
+EGE
 
 is parsed as:
 
-```text
+EGEtext
 a | (b & c)
-```
+EGE
 
 The regex AST contains the node:
 
-```text
+EGEtext
 Intersect(left, right)
-```
+EGE
 
 ---
 
-## Structural bounded conjunction encoding
+ERKEERKE Structural bounded conjunction encoding
 
 For the bounded backend, conjunction can be compiled structurally.
 
 The idea is:
 
-```text
+EGEtext
 compile(A & B)
 =
 compile(A) AND compile(B)
-```
+EGE
 
 This means that both sides are compiled separately into bounded logical expressions, and the final expression is the conjunction of both.
 
 For example:
 
-```text
+EGEtext
 (a|b)*&a*
-```
+EGE
 
 is compiled by generating bounded encodings for both `(a|b)*` and `a*`, then combining them with `AND`.
 
@@ -694,52 +691,52 @@ This produces a combinational AIGER circuit.
 
 ---
 
-## Structural sequential conjunction encoding
+ERKEERKE Structural sequential conjunction encoding
 
 Sequential conjunction can be implemented using parallel circuit composition.
 
 The idea is:
 
-```text
+EGEtext
 A & B
 =
 run A and B in parallel
 accept = accept_A AND accept_B
-```
+EGE
 
 For example, the expression:
 
-```text
+EGEtext
 ((a|b)*) & (a*)
-```
+EGE
 
 is handled by compiling both sides into sequential circuits:
 
-```text
+EGEtext
 left  = (a|b)*
 right = a*
-```
+EGE
 
 Both circuits read the same input stream.
 
 Their internal latch names are renamed to avoid collisions:
 
-```text
+EGEtext
 state_0 -> left_state_0
 state_0 -> right_state_0
-```
+EGE
 
 The final output is:
 
-```text
+EGEtext
 accept = left_accept AND right_accept
-```
+EGE
 
 This allows conjunction to be represented using latch-based AIGER by parallel composition.
 
 ---
 
-## Product automaton construction
+ERKEERKE Product automaton construction
 
 The project also supports explicit product automata for intersection.
 
@@ -747,13 +744,13 @@ Instead of compiling `A & B` structurally, both sides can be converted into auto
 
 The idea is:
 
-```text
+EGEtext
 A & B
 -> NFA(A)
 -> NFA(B)
 -> product NFA(A, B)
 -> backend encoding
-```
+EGE
 
 The product construction is available for both:
 
@@ -762,21 +759,21 @@ The product construction is available for both:
 
 This gives two selectable intersection strategies:
 
-```text
+EGEtext
 structural
 product
-```
+EGE
 
 The CLI exposes this through:
 
-```bash
+EGEbash
 --intersection-strategy structural
 --intersection-strategy product
-```
+EGE
 
 ---
 
-## Milestone 3 files
+ERKEERKE Milestone 3 files
 
 The following components were added or extended for conjunction and product automata:
 
@@ -798,47 +795,47 @@ The following components were added or extended for conjunction and product auto
 
 ---
 
-## Run milestone 3 demos
+ERKEERKE Run milestone 3 demos
 
 To run the bounded intersection demo:
 
-```bash
+EGEbash
 python demos/regex_intersection_demo.py
-```
+EGE
 
 To run the sequential intersection demo:
 
-```bash
+EGEbash
 python demos/sequential_intersection_demo.py
-```
+EGE
 
 Generated AIGER files from these demos are written to:
 
-```text
+EGEtext
 outputs/
-```
+EGE
 
 ---
 
-## Milestone 3 current status
+ERKEERKE Milestone 3 current status
 
 The bounded backend supports conjunction for examples such as:
 
-```text
+EGEtext
 (a|b)*&a*
 (ab)*&(a|b)*
 a*&b*
-```
+EGE
 
 The sequential backend also supports conjunction.
 
 The same examples are supported in the sequential backend:
 
-```text
+EGEtext
 (a|b)*&a*
 (ab)*&(a|b)*
 a*&b*
-```
+EGE
 
 The bounded backend produces combinational AIGER.
 
@@ -848,7 +845,7 @@ The project supports both structural and product-based intersection strategies.
 
 ---
 
-## Milestone 4: Evaluation and validation
+ERKEERKE Milestone 4: Evaluation and validation
 
 Milestone 4 evaluates the generated AIGER circuits on benchmark expressions.
 
@@ -860,15 +857,15 @@ The evaluation currently contains three main parts:
 
 The benchmark patterns, bounds, and expected positive/negative examples are centralized in:
 
-```text
+EGEtext
 evaluation/benchmark_cases.py
-```
+EGE
 
 The statistics comparison extracts information from the AIGER header:
 
-```text
+EGEtext
 aag M I L O A
-```
+EGE
 
 where:
 
@@ -891,7 +888,7 @@ The exhaustive bounded validation generates all words up to the benchmark-specif
 
 ---
 
-## Milestone 4 files
+ERKEERKE Milestone 4 files
 
 The following evaluation files are currently used:
 
@@ -912,35 +909,35 @@ The following evaluation files are currently used:
 
 ---
 
-## Run evaluations
+ERKEERKE Run evaluations
 
 To run the AIGER statistics evaluation:
 
-```bash
+EGEbash
 python evaluation/evaluate_aiger_stats.py
-```
+EGE
 
 To run the selected language behavior validation:
 
-```bash
+EGEbash
 python evaluation/evaluate_language_behavior.py
-```
+EGE
 
 To run the exhaustive bounded language behavior validation:
 
-```bash
+EGEbash
 python evaluation/evaluate_exhaustive_behavior.py
-```
+EGE
 
 To run all evaluations:
 
-```bash
+EGEbash
 python run_all_evaluations.py
-```
+EGE
 
 The evaluation scripts generate:
 
-```text
+EGEtext
 evaluation/aiger_stats.csv
 evaluation/aiger_stats.md
 evaluation/language_behavior.csv
@@ -948,13 +945,13 @@ evaluation/language_behavior.md
 evaluation/exhaustive_behavior.csv
 evaluation/exhaustive_behavior_summary.csv
 evaluation/exhaustive_behavior.md
-```
+EGE
 
 These files can be used directly in the project report or presentation.
 
 ---
 
-## AIGER validation
+ERKEERKE AIGER validation
 
 The project includes an internal structural validator for ASCII AIGER text.
 
@@ -973,30 +970,30 @@ This is not a certified external semantic checker, but it catches malformed gene
 
 The project also includes a validated AIGER writing pipeline:
 
-```text
+EGEtext
 AIGER text
 -> internal structural validation
 -> output directory creation
 -> file writing
-```
+EGE
 
 The CLI uses this pipeline by default.
 
 Validation can be skipped explicitly with:
 
-```bash
+EGEbash
 --skip-validation
-```
+EGE
 
 ---
 
-## Command-line interface
+ERKEERKE Command-line interface
 
 The project provides a command-line interface through the Python module entry point:
 
-```bash
+EGEbash
 python -m string_to_aiger
-```
+EGE
 
 The CLI supports two backends:
 
@@ -1018,9 +1015,9 @@ The default strategy is `structural`.
 
 The selected strategy can be changed with:
 
-```bash
+EGEbash
 --intersection-strategy product
-```
+EGE
 
 For bounded compilation, the CLI reports regex length analysis:
 
@@ -1033,51 +1030,51 @@ The CLI also validates generated AIGER text by default.
 
 Example bounded compilation with a direct pattern:
 
-```bash
+EGEbash
 python -m string_to_aiger --pattern "(a|b)*&a*" --backend bounded --bound 4 --output outputs/cli_bounded.aag
-```
+EGE
 
 Example bounded compilation using product automata:
 
-```bash
+EGEbash
 python -m string_to_aiger --pattern "(a|b)*&a*" --backend bounded --intersection-strategy product --bound 4 --output outputs/cli_bounded_product.aag
-```
+EGE
 
 Example sequential compilation with a direct pattern:
 
-```bash
+EGEbash
 python -m string_to_aiger --pattern "(a|b)*&a*" --backend sequential --output outputs/cli_sequential.aag
-```
+EGE
 
 Example sequential compilation using product automata:
 
-```bash
+EGEbash
 python -m string_to_aiger --pattern "(a|b)*&a*" --backend sequential --intersection-strategy product --output outputs/cli_sequential_product.aag
-```
+EGE
 
 Example bounded compilation from an input file:
 
-```bash
+EGEbash
 python -m string_to_aiger --input-file examples/cli_pattern.txt --backend bounded --bound 4 --output outputs/from_file.aag
-```
+EGE
 
 Example bounded compilation without internal validation:
 
-```bash
+EGEbash
 python -m string_to_aiger --pattern "a{1,3}" --backend bounded --bound 3 --skip-validation --output outputs/no_validation.aag
-```
+EGE
 
 The default output path is:
 
-```text
+EGEtext
 outputs/cli_output.aag
-```
+EGE
 
 If neither `--pattern` nor `--input-file` is provided, the CLI prints a usage message.
 
 ---
 
-## CLI files
+ERKEERKE CLI files
 
 The command-line interface is implemented by:
 
@@ -1089,133 +1086,133 @@ The command-line interface is implemented by:
 
 ---
 
-## Tests
+ERKEERKE Tests
 
 To run the milestone 1 tests:
 
-```bash
+EGEbash
 python tests/tests.py
-```
+EGE
 
 To run the regex and bounded encoding tests:
 
-```bash
+EGEbash
 python tests/tests_regex.py
-```
+EGE
 
 To run the regex length analysis tests:
 
-```bash
+EGEbash
 python tests/tests_regex_length.py
-```
+EGE
 
 To run the sequential backend tests:
 
-```bash
+EGEbash
 python tests/tests_sequential.py
-```
+EGE
 
 To run the sequential trace validation tests:
 
-```bash
+EGEbash
 python tests/tests_sequential_trace.py
-```
+EGE
 
 To run the bounded intersection tests:
 
-```bash
+EGEbash
 python tests/tests_intersection.py
-```
+EGE
 
 To run the sequential intersection tests:
 
-```bash
+EGEbash
 python tests/tests_sequential_intersection.py
-```
+EGE
 
 To run the CLI tests:
 
-```bash
+EGEbash
 python tests/tests_cli.py
-```
+EGE
 
 To run the evaluation tests:
 
-```bash
+EGEbash
 python tests/tests_evaluation.py
-```
+EGE
 
 To run the product automaton tests:
 
-```bash
+EGEbash
 python tests/tests_nfa_product.py
-```
+EGE
 
 To run the product backend tests:
 
-```bash
+EGEbash
 python tests/tests_product_backend.py
-```
+EGE
 
 To run the alphabet extraction tests:
 
-```bash
+EGEbash
 python tests/tests_alphabet.py
-```
+EGE
 
 To run the NFA pruning tests:
 
-```bash
+EGEbash
 python tests/tests_nfa_prune.py
-```
+EGE
 
 To run the NFA optimization tests:
 
-```bash
+EGEbash
 python tests/tests_nfa_optimize.py
-```
+EGE
 
 To run the AIGER validator tests:
 
-```bash
+EGEbash
 python tests/tests_aiger_validator.py
-```
+EGE
 
 To run the AIGER pipeline tests:
 
-```bash
+EGEbash
 python tests/tests_aiger_pipeline.py
-```
+EGE
 
 A full local test run can be done with:
 
-```bash
+EGEbash
 python run_all_tests.py
-```
+EGE
 
 This runs the full project test suite.
 
 ---
 
-## Demo runner
+ERKEERKE Demo runner
 
 All demos can be executed with:
 
-```bash
+EGEbash
 python run_all_demos.py
-```
+EGE
 
 This runs the milestone 1 demo, regex demos, NFA demos, bounded backend demos, sequential backend demos, and intersection demos.
 
 ---
 
-## Output artifacts
+ERKEERKE Output artifacts
 
 Generated AIGER files are written to:
 
-```text
+EGEtext
 outputs/
-```
+EGE
 
 Examples include:
 
@@ -1236,9 +1233,9 @@ Generated `.aag` files are ignored by Git because they can be regenerated from t
 
 Evaluation output files are generated under:
 
-```text
+EGEtext
 evaluation/
-```
+EGE
 
 Examples include:
 
@@ -1252,11 +1249,11 @@ Examples include:
 
 ---
 
-## Current status
+ERKEERKE Current status
 
 The current implementation supports the following compilation modes:
 
-```text
+EGEtext
 Milestone 1:
 fixed strings
 -> logical constraints
@@ -1298,7 +1295,7 @@ generated AIGER circuits
 -> statistics comparison
 -> selected language behavior validation
 -> exhaustive bounded language validation
-```
+EGE
 
 The CLI provides a direct compiler interface for bounded and sequential AIGER generation.
 
@@ -1306,7 +1303,7 @@ The project also includes internal structural AIGER validation, regex length ana
 
 ---
 
-## Current limitations
+ERKEERKE Current limitations
 
 - The bounded backend still requires a fixed maximum word length.
 - The project includes regex length analysis and bound-completeness reporting, but it does not remove the need for a bound in the bounded backend.
@@ -1323,7 +1320,7 @@ The project also includes internal structural AIGER validation, regex length ana
 
 ---
 
-## Future work
+ERKEERKE Future work
 
 Possible future improvements include:
 
@@ -1342,13 +1339,13 @@ Possible future improvements include:
 
 ---
 
-## Summary
+ERKEERKE Summary
 
 The project implements a step-by-step compiler pipeline from string constraints to AIGER.
 
 The conceptual progression is:
 
-```text
+EGEtext
 Milestone 1:
 fixed string disjunctions
 -> logical constraints
@@ -1372,7 +1369,7 @@ generated AIGER circuits
 -> selected behavior validation
 -> exhaustive bounded behavior validation
 -> command-line compilation interface
-```
+EGE
 
 The bounded backend is useful as a simpler intermediate encoding.
 
@@ -1387,4 +1384,3 @@ The evaluation scripts provide evidence that the generated circuits behave corre
 The command-line interface makes the compiler easier to use as a small standalone tool.
 
 The internal validator, trace checker, length analysis, product strategy selection, and evaluation infrastructure make the project easier to test, explain, and extend.
-```
