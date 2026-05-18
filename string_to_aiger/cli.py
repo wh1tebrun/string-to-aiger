@@ -1,6 +1,8 @@
 import argparse
 import os
 
+from string_to_aiger.regex.regex_parser import parse_regex
+from string_to_aiger.regex.regex_length import regex_length, is_bound_complete
 from string_to_aiger.regex.regex_bounded_compiler import compile_regex_bounded
 from string_to_aiger.aiger.aiger import compile_expr_to_aiger
 from string_to_aiger.aiger.aiger_validator import validate_aiger
@@ -37,6 +39,34 @@ def write_output(path: str, aiger_text: str) -> None:
 
     with open(path, "w", encoding="utf-8") as f:
         f.write(aiger_text)
+
+
+def max_length_text(max_length: int | None) -> str:
+    if max_length is None:
+        return "unbounded"
+
+    return str(max_length)
+
+
+def yes_no(value: bool) -> str:
+    if value:
+        return "yes"
+
+    return "no"
+
+
+def length_analysis_lines(pattern: str, bound: int) -> list[str]:
+    ast = parse_regex(pattern)
+    info = regex_length(ast)
+    complete = is_bound_complete(ast, bound)
+
+    return [
+        "Length analysis:",
+        f"  min length: {info.min_length}",
+        f"  max length: {max_length_text(info.max_length)}",
+        f"  exact: {yes_no(info.exact)}",
+        f"  bound complete: {yes_no(complete)}",
+    ]
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -101,7 +131,10 @@ def main() -> int:
         else:
             parser.error("Either --pattern or --input-file must be provided")
 
+        analysis_lines: list[str] = []
+
         if args.backend == "bounded":
+            analysis_lines = length_analysis_lines(pattern, args.bound)
             aiger_text = compile_bounded(pattern, args.bound)
         else:
             aiger_text = compile_sequential(pattern)
@@ -122,6 +155,9 @@ def main() -> int:
 
     if args.backend == "bounded":
         print("Bound:", args.bound)
+
+        for line in analysis_lines:
+            print(line)
 
     print("AIGER validation:", validation_status)
     print("Written to:", args.output)
