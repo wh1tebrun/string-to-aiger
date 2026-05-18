@@ -44,6 +44,15 @@ class RegexParser:
         self.pos += 1
         return ch
 
+    def consume_escaped_literal(self) -> str:
+        self.consume("\\")
+
+        ch = self.current()
+        if ch is None:
+            raise ValueError("Unexpected end of input after escape character")
+
+        return self.consume()
+
     def parse_union(self) -> Regex:
         left = self.parse_intersection()
 
@@ -99,6 +108,9 @@ class RegexParser:
         if ch is None:
             raise ValueError("Unexpected end of input")
 
+        if ch == "\\":
+            return Char(self.consume_escaped_literal())
+
         if ch == "(":
             self.consume("(")
             expr = self.parse_union()
@@ -128,14 +140,16 @@ class RegexParser:
                 self.consume("]")
                 break
 
-            start = self.consume()
+            start = self.parse_character_class_symbol()
 
             if start == "[":
-                raise ValueError(f"Unexpected '[' inside character class at position {self.pos - 1}")
+                raise ValueError(
+                    f"Unexpected '[' inside character class at position {self.pos - 1}"
+                )
 
             if self.current() == "-" and self.peek() not in (None, "]"):
                 self.consume("-")
-                end = self.consume()
+                end = self.parse_character_class_symbol()
 
                 if end in "[]":
                     raise ValueError("Invalid character range in character class")
@@ -148,6 +162,17 @@ class RegexParser:
             raise ValueError("Character class must not be empty")
 
         return self.union_all(options)
+
+    def parse_character_class_symbol(self) -> str:
+        ch = self.current()
+
+        if ch is None:
+            raise ValueError("Unterminated character class")
+
+        if ch == "\\":
+            return self.consume_escaped_literal()
+
+        return self.consume()
 
     def expand_range(self, start: str, end: str) -> list[Regex]:
         if ord(start) > ord(end):

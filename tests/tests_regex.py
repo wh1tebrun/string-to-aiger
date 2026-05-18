@@ -77,6 +77,22 @@ def test_regex_parser_rejects_invalid_character_range():
         pass
 
 
+def test_regex_parser_rejects_trailing_escape():
+    try:
+        parse_regex("a\\")
+        assert False, "Expected ValueError for trailing escape"
+    except ValueError:
+        pass
+
+
+def test_regex_parser_rejects_trailing_escape_in_character_class():
+    try:
+        parse_regex("[a\\")
+        assert False, "Expected ValueError for trailing escape in character class"
+    except ValueError:
+        pass
+
+
 def test_nfa_accepts_star():
     ast = parse_regex("a*")
     nfa = build_nfa(ast)
@@ -131,6 +147,92 @@ def test_nfa_accepts_character_class_range():
     assert accepts(nfa, "abd") is False
 
 
+def test_nfa_accepts_escaped_star_literal():
+    ast = parse_regex("a\\*")
+    nfa = build_nfa(ast)
+
+    assert accepts(nfa, "a*") is True
+
+    assert accepts(nfa, "") is False
+    assert accepts(nfa, "a") is False
+    assert accepts(nfa, "aa") is False
+
+
+def test_nfa_accepts_escaped_union_literal():
+    ast = parse_regex("a\\|b")
+    nfa = build_nfa(ast)
+
+    assert accepts(nfa, "a|b") is True
+
+    assert accepts(nfa, "a") is False
+    assert accepts(nfa, "b") is False
+    assert accepts(nfa, "ab") is False
+
+
+def test_nfa_accepts_escaped_intersection_literal():
+    ast = parse_regex("a\\&b")
+    nfa = build_nfa(ast)
+
+    assert accepts(nfa, "a&b") is True
+
+    assert accepts(nfa, "a") is False
+    assert accepts(nfa, "b") is False
+    assert accepts(nfa, "ab") is False
+
+
+def test_nfa_accepts_escaped_parentheses_literals():
+    ast = parse_regex("\\(ab\\)")
+    nfa = build_nfa(ast)
+
+    assert accepts(nfa, "(ab)") is True
+
+    assert accepts(nfa, "ab") is False
+    assert accepts(nfa, "(a)") is False
+
+
+def test_nfa_accepts_escaped_bracket_literals():
+    ast = parse_regex("\\[ab\\]")
+    nfa = build_nfa(ast)
+
+    assert accepts(nfa, "[ab]") is True
+
+    assert accepts(nfa, "ab") is False
+    assert accepts(nfa, "[a]") is False
+
+
+def test_nfa_accepts_escaped_backslash_literal():
+    ast = parse_regex("\\\\")
+    nfa = build_nfa(ast)
+
+    assert accepts(nfa, "\\") is True
+
+    assert accepts(nfa, "") is False
+    assert accepts(nfa, "\\\\") is False
+
+
+def test_nfa_accepts_escaped_dash_inside_character_class():
+    ast = parse_regex("[a\\-c]")
+    nfa = build_nfa(ast)
+
+    assert accepts(nfa, "a") is True
+    assert accepts(nfa, "-") is True
+    assert accepts(nfa, "c") is True
+
+    assert accepts(nfa, "b") is False
+    assert accepts(nfa, "ac") is False
+
+
+def test_nfa_accepts_escaped_closing_bracket_inside_character_class():
+    ast = parse_regex("[a\\]]")
+    nfa = build_nfa(ast)
+
+    assert accepts(nfa, "a") is True
+    assert accepts(nfa, "]") is True
+
+    assert accepts(nfa, "b") is False
+    assert accepts(nfa, "a]") is False
+
+
 def test_bounded_encoding_a_star():
     ast = parse_regex("a*")
     nfa = build_nfa(ast)
@@ -183,6 +285,18 @@ def test_bounded_encoding_character_class_range():
     assert evaluate(expr, "abd") is False
 
 
+def test_bounded_encoding_escaped_star_literal():
+    ast = parse_regex("a\\*")
+    nfa = build_nfa(ast)
+    expr = compile_nfa_bounded(nfa, bound=2)
+
+    assert evaluate(expr, "a*") is True
+
+    assert evaluate(expr, "") is False
+    assert evaluate(expr, "a") is False
+    assert evaluate(expr, "aa") is False
+
+
 def test_regex_to_aiger_output():
     aiger_text = compile_regex_to_aiger("a*", bound=3)
 
@@ -203,13 +317,24 @@ def run_tests():
     test_regex_parser_rejects_empty_character_class()
     test_regex_parser_rejects_unterminated_character_class()
     test_regex_parser_rejects_invalid_character_range()
+    test_regex_parser_rejects_trailing_escape()
+    test_regex_parser_rejects_trailing_escape_in_character_class()
     test_nfa_accepts_star()
     test_nfa_accepts_ab_star()
     test_nfa_accepts_character_class_star()
     test_nfa_accepts_character_class_range()
+    test_nfa_accepts_escaped_star_literal()
+    test_nfa_accepts_escaped_union_literal()
+    test_nfa_accepts_escaped_intersection_literal()
+    test_nfa_accepts_escaped_parentheses_literals()
+    test_nfa_accepts_escaped_bracket_literals()
+    test_nfa_accepts_escaped_backslash_literal()
+    test_nfa_accepts_escaped_dash_inside_character_class()
+    test_nfa_accepts_escaped_closing_bracket_inside_character_class()
     test_bounded_encoding_a_star()
     test_bounded_encoding_ab_star()
     test_bounded_encoding_character_class_range()
+    test_bounded_encoding_escaped_star_literal()
     test_regex_to_aiger_output()
 
     print("All regex tests passed.")
