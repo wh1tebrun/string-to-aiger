@@ -52,6 +52,18 @@ BENCHMARK_CASES = [
         positive_words=("",),
         negative_words=("a", "aa", "b", "bb", "ab", "ba"),
     ),
+    BenchmarkCase(
+        pattern="a{1,3}",
+        bound=3,
+        positive_words=("a", "aa", "aaa"),
+        negative_words=("", "aaaa", "b"),
+    ),
+    BenchmarkCase(
+        pattern="[ab]{2,}",
+        bound=4,
+        positive_words=("aa", "ab", "ba", "bb", "abba"),
+        negative_words=("", "a", "ac"),
+    ),
 ]
 
 

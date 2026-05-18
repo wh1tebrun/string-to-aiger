@@ -11,15 +11,22 @@ os.makedirs(EVALUATION_DIR, exist_ok=True)
 
 from evaluation.benchmark_cases import BENCHMARK_CASES  # noqa: E402
 from string_to_aiger.regex.regex_bounded_compiler import compile_regex_bounded  # noqa: E402
+from string_to_aiger.bounded.product_bounded_compiler import compile_regex_bounded_product  # noqa: E402
 from string_to_aiger.aiger.aiger import compile_expr_to_aiger  # noqa: E402
+from string_to_aiger.aiger.aiger_validator import validate_aiger  # noqa: E402
 from string_to_aiger.sequential.sequential_regex_compiler import compile_regex_to_sequential  # noqa: E402
+from string_to_aiger.sequential.product_sequential_compiler import compile_regex_to_sequential_product  # noqa: E402
 from string_to_aiger.sequential.sequential_aiger_writer import SequentialAigerWriter  # noqa: E402
+
+
+INTERSECTION_STRATEGIES = ("structural", "product")
 
 
 @dataclass
 class AigerStats:
     pattern: str
     backend: str
+    intersection_strategy: str
     bound: str
     max_var_index: int
     inputs: int
@@ -32,62 +39,82 @@ class AigerStats:
 def parse_aiger_stats(
     pattern: str,
     backend: str,
+    intersection_strategy: str,
     bound: str,
     aiger_text: str,
 ) -> AigerStats:
-    """Parse the ASCII AIGER header.
-
-    Header format:
-        aag M I L O A
-
-    M: maximum variable index
-    I: number of inputs
-    L: number of latches
-    O: number of outputs
-    A: number of AND gates
-    """
-    first_line = aiger_text.splitlines()[0]
-    parts = first_line.split()
-
-    if len(parts) != 6 or parts[0] != "aag":
-        raise ValueError(f"Invalid AIGER header: {first_line}")
+    """Parse and validate ASCII AIGER header statistics."""
+    header = validate_aiger(aiger_text)
 
     return AigerStats(
         pattern=pattern,
         backend=backend,
+        intersection_strategy=intersection_strategy,
         bound=bound,
-        max_var_index=int(parts[1]),
-        inputs=int(parts[2]),
-        latches=int(parts[3]),
-        outputs=int(parts[4]),
-        and_gates=int(parts[5]),
+        max_var_index=header.max_var_index,
+        inputs=header.inputs,
+        latches=header.latches,
+        outputs=header.outputs,
+        and_gates=header.and_gates,
         file_size_bytes=len(aiger_text.encode("utf-8")),
     )
 
 
-def compile_bounded_stats(pattern: str, bound: int) -> AigerStats:
-    expr = compile_regex_bounded(pattern, bound)
+def compile_bounded_stats(
+    pattern: str,
+    bound: int,
+    intersection_strategy: str,
+) -> AigerStats:
+    if intersection_strategy == "product":
+        expr = compile_regex_bounded_product(pattern, bound)
+    else:
+        expr = compile_regex_bounded(pattern, bound)
+
     aiger_text = compile_expr_to_aiger(expr)
 
     return parse_aiger_stats(
         pattern=pattern,
         backend="bounded",
+        intersection_strategy=intersection_strategy,
         bound=str(bound),
         aiger_text=aiger_text,
     )
 
 
-def compile_sequential_stats(pattern: str) -> AigerStats:
-    circuit = compile_regex_to_sequential(pattern)
+def compile_sequential_stats(
+    pattern: str,
+    intersection_strategy: str,
+) -> AigerStats:
+    if intersection_strategy == "product":
+        circuit = compile_regex_to_sequential_product(pattern)
+    else:
+        circuit = compile_regex_to_sequential(pattern)
+
     writer = SequentialAigerWriter(circuit)
     aiger_text = writer.write()
 
     return parse_aiger_stats(
         pattern=pattern,
         backend="sequential",
+        intersection_strategy=intersection_strategy,
         bound="-",
         aiger_text=aiger_text,
     )
+
+
+def table_headers() -> list[str]:
+    return [
+        "pattern",
+        "backend",
+        "strategy",
+        "bound",
+        "M",
+        "I",
+        "L",
+        "O",
+        "A",
+        "size(bytes)",
+    ]
 
 
 def stats_to_rows(stats: list[AigerStats]) -> list[list[str]]:
@@ -95,6 +122,7 @@ def stats_to_rows(stats: list[AigerStats]) -> list[list[str]]:
         [
             stat.pattern,
             stat.backend,
+            stat.intersection_strategy,
             stat.bound,
             str(stat.max_var_index),
             str(stat.inputs),
@@ -104,20 +132,6 @@ def stats_to_rows(stats: list[AigerStats]) -> list[list[str]]:
             str(stat.file_size_bytes),
         ]
         for stat in stats
-    ]
-
-
-def table_headers() -> list[str]:
-    return [
-        "pattern",
-        "backend",
-        "bound",
-        "M",
-        "I",
-        "L",
-        "O",
-        "A",
-        "size(bytes)",
     ]
 
 
@@ -159,6 +173,10 @@ def write_csv(stats: list[AigerStats], path: str) -> None:
         writer.writerows(rows)
 
 
+def escape_markdown_cell(value: str) -> str:
+    return value.replace("|", "\\|")
+
+
 def write_markdown(stats: list[AigerStats], path: str) -> None:
     headers = table_headers()
     rows = stats_to_rows(stats)
@@ -166,11 +184,18 @@ def write_markdown(stats: list[AigerStats], path: str) -> None:
     with open(path, "w", encoding="utf-8") as f:
         f.write("# AIGER statistics comparison\n\n")
 
+        f.write("This table compares generated ASCII AIGER header statistics ")
+        f.write("for both compilation backends and both intersection strategies.\n\n")
+
         f.write("| " + " | ".join(headers) + " |\n")
         f.write("| " + " | ".join("---" for _ in headers) + " |\n")
 
         for row in rows:
-            f.write("| " + " | ".join(row) + " |\n")
+            escaped_row = [
+                escape_markdown_cell(value)
+                for value in row
+            ]
+            f.write("| " + " | ".join(escaped_row) + " |\n")
 
         f.write("\n")
         f.write("## Notes\n\n")
@@ -181,24 +206,30 @@ def write_markdown(stats: list[AigerStats], path: str) -> None:
         f.write("- `A` is the number of AND gates.\n")
         f.write("- Bounded encodings are combinational and therefore have `L = 0`.\n")
         f.write("- Sequential encodings use latches and therefore have `L > 0`.\n")
+        f.write("- `structural` compiles intersection structurally.\n")
+        f.write("- `product` compiles intersection through explicit product automata.\n")
+        f.write("- Every generated AIGER text is checked by the internal structural validator before statistics are recorded.\n")
 
 
 def collect_stats() -> list[AigerStats]:
     all_stats: list[AigerStats] = []
 
     for benchmark in BENCHMARK_CASES:
-        all_stats.append(
-            compile_bounded_stats(
-                benchmark.pattern,
-                benchmark.bound,
+        for strategy in INTERSECTION_STRATEGIES:
+            all_stats.append(
+                compile_bounded_stats(
+                    pattern=benchmark.pattern,
+                    bound=benchmark.bound,
+                    intersection_strategy=strategy,
+                )
             )
-        )
 
-        all_stats.append(
-            compile_sequential_stats(
-                benchmark.pattern,
+            all_stats.append(
+                compile_sequential_stats(
+                    pattern=benchmark.pattern,
+                    intersection_strategy=strategy,
+                )
             )
-        )
 
     return all_stats
 

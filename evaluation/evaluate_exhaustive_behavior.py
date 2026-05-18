@@ -14,10 +14,12 @@ from evaluation.benchmark_cases import BENCHMARK_CASES  # noqa: E402
 from string_to_aiger.regex.regex_parser import parse_regex  # noqa: E402
 from string_to_aiger.regex.regex_alphabet import regex_alphabet  # noqa: E402
 from string_to_aiger.regex.regex_bounded_compiler import compile_regex_bounded  # noqa: E402
+from string_to_aiger.bounded.product_bounded_compiler import compile_regex_bounded_product  # noqa: E402
 from string_to_aiger.regex.regex_to_product_nfa import build_product_aware_nfa  # noqa: E402
 from string_to_aiger.logic.evaluator import evaluate  # noqa: E402
 from string_to_aiger.nfa.nfa_evaluator import accepts as nfa_accepts  # noqa: E402
 from string_to_aiger.sequential.sequential_regex_compiler import compile_regex_to_sequential  # noqa: E402
+from string_to_aiger.sequential.product_sequential_compiler import compile_regex_to_sequential_product  # noqa: E402
 from string_to_aiger.sequential.sequential_simulator import simulate  # noqa: E402
 
 
@@ -27,8 +29,10 @@ class ExhaustiveResult:
     bound: int
     word: str
     expected: bool
-    bounded_result: bool
-    sequential_result: bool
+    bounded_structural: bool
+    bounded_product: bool
+    sequential_structural: bool
+    sequential_product: bool
     status: str
 
 
@@ -78,26 +82,53 @@ def escape_markdown_cell(value: str) -> str:
     return value.replace("|", "\\|")
 
 
-def evaluate_benchmark(pattern: str, bound: int) -> tuple[list[ExhaustiveResult], BenchmarkSummary]:
+def evaluate_benchmark(
+    pattern: str,
+    bound: int,
+) -> tuple[list[ExhaustiveResult], BenchmarkSummary]:
     ast = parse_regex(pattern)
     alphabet = tuple(sorted(regex_alphabet(ast)))
 
     expected_nfa = build_product_aware_nfa(ast)
-    bounded_expr = compile_regex_bounded(pattern, bound)
-    sequential_circuit = compile_regex_to_sequential(pattern)
+    bounded_structural_expr = compile_regex_bounded(pattern, bound)
+    bounded_product_expr = compile_regex_bounded_product(pattern, bound)
+    sequential_structural_circuit = compile_regex_to_sequential(pattern)
+    sequential_product_circuit = compile_regex_to_sequential_product(pattern)
 
     results: list[ExhaustiveResult] = []
 
     for word in generate_words(alphabet, bound):
         expected = nfa_accepts(expected_nfa, word)
-        bounded_result = evaluate(bounded_expr, word)
 
-        sequential_outputs = simulate(sequential_circuit, word_to_trace(word))
-        sequential_result = sequential_outputs[-1]["accept"]
+        bounded_structural = evaluate(
+            bounded_structural_expr,
+            word,
+        )
+        bounded_product = evaluate(
+            bounded_product_expr,
+            word,
+        )
+
+        sequential_structural_outputs = simulate(
+            sequential_structural_circuit,
+            word_to_trace(word),
+        )
+        sequential_product_outputs = simulate(
+            sequential_product_circuit,
+            word_to_trace(word),
+        )
+
+        sequential_structural = sequential_structural_outputs[-1]["accept"]
+        sequential_product = sequential_product_outputs[-1]["accept"]
 
         status = (
             "OK"
-            if expected == bounded_result == sequential_result
+            if (
+                expected == bounded_structural
+                and expected == bounded_product
+                and expected == sequential_structural
+                and expected == sequential_product
+            )
             else "FAIL"
         )
 
@@ -107,8 +138,10 @@ def evaluate_benchmark(pattern: str, bound: int) -> tuple[list[ExhaustiveResult]
                 bound=bound,
                 word=word,
                 expected=expected,
-                bounded_result=bounded_result,
-                sequential_result=sequential_result,
+                bounded_structural=bounded_structural,
+                bounded_product=bounded_product,
+                sequential_structural=sequential_structural,
+                sequential_product=sequential_product,
                 status=status,
             )
         )
@@ -153,8 +186,10 @@ def result_headers() -> list[str]:
         "bound",
         "word",
         "expected",
-        "bounded",
-        "sequential",
+        "bounded_structural",
+        "bounded_product",
+        "sequential_structural",
+        "sequential_product",
         "status",
     ]
 
@@ -176,8 +211,10 @@ def result_to_row(result: ExhaustiveResult) -> list[str]:
         str(result.bound),
         display_word(result.word),
         str(result.expected),
-        str(result.bounded_result),
-        str(result.sequential_result),
+        str(result.bounded_structural),
+        str(result.bounded_product),
+        str(result.sequential_structural),
+        str(result.sequential_product),
         result.status,
     ]
 
@@ -259,8 +296,10 @@ def write_markdown(
 
         f.write("For each generated word, the following results are compared:\n\n")
         f.write("- expected result from the product-aware NFA\n")
-        f.write("- bounded combinational backend result\n")
-        f.write("- sequential latch-based backend result\n\n")
+        f.write("- bounded backend with structural intersection encoding\n")
+        f.write("- bounded backend with explicit product automata\n")
+        f.write("- sequential backend with structural / parallel-composition intersection encoding\n")
+        f.write("- sequential backend with explicit product automata\n\n")
 
         f.write("## Summary\n\n")
 
@@ -293,7 +332,7 @@ def write_markdown(
         f.write("## Notes\n\n")
         f.write("- The exhaustive search is bounded by the benchmark-specific bound.\n")
         f.write("- The alphabet is extracted from the regex AST.\n")
-        f.write("- `OK` means that the expected NFA result, bounded backend result, and sequential backend result all agree.\n")
+        f.write("- `OK` means that the expected NFA result and all backend/strategy results agree.\n")
 
 
 def main() -> None:

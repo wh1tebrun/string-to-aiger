@@ -5,8 +5,9 @@ ROOT_DIR = os.path.dirname(os.path.dirname(__file__))
 sys.path.append(ROOT_DIR)
 
 from evaluation.benchmark_cases import BENCHMARK_CASES, iter_expected_words  # noqa: E402
-from evaluation.evaluate_aiger_stats import parse_aiger_stats  # noqa: E402
-from evaluation.evaluate_language_behavior import collect_results  # noqa: E402
+from evaluation.evaluate_aiger_stats import collect_stats, table_headers as stats_headers  # noqa: E402
+from evaluation.evaluate_language_behavior import collect_results as collect_language_results  # noqa: E402
+from evaluation.evaluate_exhaustive_behavior import collect_results as collect_exhaustive_results  # noqa: E402
 
 
 def test_benchmark_cases_are_not_empty():
@@ -26,49 +27,96 @@ def test_benchmark_cases_have_examples():
 def test_expected_word_iterator_matches_benchmark_cases():
     expected_words = iter_expected_words()
 
-    assert len(expected_words) > 0
-
-    for pattern, bound, word, expected in expected_words:
-        assert isinstance(pattern, str)
-        assert isinstance(bound, int)
-        assert isinstance(word, str)
-        assert isinstance(expected, bool)
-
-
-def test_parse_aiger_stats_valid_header():
-    aiger_text = "\n".join([
-        "aag 5 2 1 1 2",
-        "2",
-        "4",
-        "6 8 1",
-        "10",
-        "8 6 4",
-        "10 2 6",
-    ])
-
-    stats = parse_aiger_stats(
-        pattern="a*",
-        backend="sequential",
-        bound="-",
-        aiger_text=aiger_text,
+    expected_count = sum(
+        len(benchmark.positive_words) + len(benchmark.negative_words)
+        for benchmark in BENCHMARK_CASES
     )
 
-    assert stats.pattern == "a*"
-    assert stats.backend == "sequential"
-    assert stats.bound == "-"
-    assert stats.max_var_index == 5
-    assert stats.inputs == 2
-    assert stats.latches == 1
-    assert stats.outputs == 1
-    assert stats.and_gates == 2
-    assert stats.file_size_bytes > 0
+    assert len(expected_words) == expected_count
 
 
-def test_language_behavior_results_are_ok():
-    results = collect_results()
+def test_aiger_stats_headers_include_strategy():
+    headers = stats_headers()
+
+    assert "pattern" in headers
+    assert "backend" in headers
+    assert "strategy" in headers
+    assert "bound" in headers
+    assert "M" in headers
+    assert "I" in headers
+    assert "L" in headers
+    assert "O" in headers
+    assert "A" in headers
+    assert "size(bytes)" in headers
+
+
+def test_aiger_stats_collection_contains_all_backend_strategy_combinations():
+    stats = collect_stats()
+
+    expected_count = len(BENCHMARK_CASES) * 4
+    assert len(stats) == expected_count
+
+    combinations = {
+        (stat.backend, stat.intersection_strategy)
+        for stat in stats
+    }
+
+    assert ("bounded", "structural") in combinations
+    assert ("bounded", "product") in combinations
+    assert ("sequential", "structural") in combinations
+    assert ("sequential", "product") in combinations
+
+
+def test_aiger_stats_have_valid_header_values():
+    stats = collect_stats()
+
+    for stat in stats:
+        assert stat.max_var_index >= 0
+        assert stat.inputs >= 0
+        assert stat.latches >= 0
+        assert stat.outputs == 1
+        assert stat.and_gates >= 0
+        assert stat.file_size_bytes > 0
+
+        if stat.backend == "bounded":
+            assert stat.latches == 0
+            assert stat.bound != "-"
+
+        if stat.backend == "sequential":
+            assert stat.latches > 0
+            assert stat.bound == "-"
+
+
+def test_language_behavior_results_all_pass():
+    results = collect_language_results()
+
+    assert len(results) == len(iter_expected_words())
+
+    for result in results:
+        assert result.status == "OK"
+        assert result.bounded_structural == result.expected
+        assert result.bounded_product == result.expected
+        assert result.sequential_structural == result.expected
+        assert result.sequential_product == result.expected
+
+
+def test_exhaustive_behavior_results_all_pass():
+    results, summaries = collect_exhaustive_results()
 
     assert len(results) > 0
-    assert all(result.status == "OK" for result in results)
+    assert len(summaries) == len(BENCHMARK_CASES)
+
+    for result in results:
+        assert result.status == "OK"
+        assert result.bounded_structural == result.expected
+        assert result.bounded_product == result.expected
+        assert result.sequential_structural == result.expected
+        assert result.sequential_product == result.expected
+
+    for summary in summaries:
+        assert summary.checked_words > 0
+        assert summary.failed == 0
+        assert summary.passed == summary.checked_words
 
 
 def run_tests():
@@ -76,8 +124,11 @@ def run_tests():
     test_benchmark_cases_have_valid_bounds()
     test_benchmark_cases_have_examples()
     test_expected_word_iterator_matches_benchmark_cases()
-    test_parse_aiger_stats_valid_header()
-    test_language_behavior_results_are_ok()
+    test_aiger_stats_headers_include_strategy()
+    test_aiger_stats_collection_contains_all_backend_strategy_combinations()
+    test_aiger_stats_have_valid_header_values()
+    test_language_behavior_results_all_pass()
+    test_exhaustive_behavior_results_all_pass()
 
     print("All evaluation tests passed.")
 

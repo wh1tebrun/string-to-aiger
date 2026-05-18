@@ -11,8 +11,10 @@ os.makedirs(EVALUATION_DIR, exist_ok=True)
 
 from evaluation.benchmark_cases import iter_expected_words  # noqa: E402
 from string_to_aiger.regex.regex_bounded_compiler import compile_regex_bounded  # noqa: E402
+from string_to_aiger.bounded.product_bounded_compiler import compile_regex_bounded_product  # noqa: E402
 from string_to_aiger.logic.evaluator import evaluate  # noqa: E402
 from string_to_aiger.sequential.sequential_regex_compiler import compile_regex_to_sequential  # noqa: E402
+from string_to_aiger.sequential.product_sequential_compiler import compile_regex_to_sequential_product  # noqa: E402
 from string_to_aiger.sequential.sequential_simulator import simulate  # noqa: E402
 
 
@@ -30,8 +32,10 @@ class BehaviorResult:
     bound: int
     word: str
     expected: bool
-    bounded_result: bool
-    sequential_result: bool
+    bounded_structural: bool
+    bounded_product: bool
+    sequential_structural: bool
+    sequential_product: bool
     status: str
 
 
@@ -51,13 +55,24 @@ def word_to_trace(word: str) -> list[dict[str, bool]]:
     return trace
 
 
-def bounded_accepts(pattern: str, bound: int, word: str) -> bool:
+def bounded_structural_accepts(pattern: str, bound: int, word: str) -> bool:
     expr = compile_regex_bounded(pattern, bound)
     return evaluate(expr, word)
 
 
-def sequential_accepts(pattern: str, word: str) -> bool:
+def bounded_product_accepts(pattern: str, bound: int, word: str) -> bool:
+    expr = compile_regex_bounded_product(pattern, bound)
+    return evaluate(expr, word)
+
+
+def sequential_structural_accepts(pattern: str, word: str) -> bool:
     circuit = compile_regex_to_sequential(pattern)
+    outputs = simulate(circuit, word_to_trace(word))
+    return outputs[-1]["accept"]
+
+
+def sequential_product_accepts(pattern: str, word: str) -> bool:
+    circuit = compile_regex_to_sequential_product(pattern)
     outputs = simulate(circuit, word_to_trace(word))
     return outputs[-1]["accept"]
 
@@ -75,12 +90,33 @@ def collect_cases() -> list[BehaviorCase]:
 
 
 def evaluate_case(case: BehaviorCase) -> BehaviorResult:
-    bounded_result = bounded_accepts(case.pattern, case.bound, case.word)
-    sequential_result = sequential_accepts(case.pattern, case.word)
+    bounded_structural = bounded_structural_accepts(
+        case.pattern,
+        case.bound,
+        case.word,
+    )
+    bounded_product = bounded_product_accepts(
+        case.pattern,
+        case.bound,
+        case.word,
+    )
+    sequential_structural = sequential_structural_accepts(
+        case.pattern,
+        case.word,
+    )
+    sequential_product = sequential_product_accepts(
+        case.pattern,
+        case.word,
+    )
 
     status = (
         "OK"
-        if bounded_result == case.expected and sequential_result == case.expected
+        if (
+            bounded_structural == case.expected
+            and bounded_product == case.expected
+            and sequential_structural == case.expected
+            and sequential_product == case.expected
+        )
         else "FAIL"
     )
 
@@ -89,8 +125,10 @@ def evaluate_case(case: BehaviorCase) -> BehaviorResult:
         bound=case.bound,
         word=case.word,
         expected=case.expected,
-        bounded_result=bounded_result,
-        sequential_result=sequential_result,
+        bounded_structural=bounded_structural,
+        bounded_product=bounded_product,
+        sequential_structural=sequential_structural,
+        sequential_product=sequential_product,
         status=status,
     )
 
@@ -108,8 +146,10 @@ def table_headers() -> list[str]:
         "bound",
         "word",
         "expected",
-        "bounded",
-        "sequential",
+        "bounded_structural",
+        "bounded_product",
+        "sequential_structural",
+        "sequential_product",
         "status",
     ]
 
@@ -126,8 +166,10 @@ def result_to_row(result: BehaviorResult) -> list[str]:
         str(result.bound),
         display_word(result.word),
         str(result.expected),
-        str(result.bounded_result),
-        str(result.sequential_result),
+        str(result.bounded_structural),
+        str(result.bounded_product),
+        str(result.sequential_structural),
+        str(result.sequential_product),
         result.status,
     ]
 
@@ -189,6 +231,10 @@ def write_markdown(results: list[BehaviorResult], path: str) -> None:
     with open(path, "w", encoding="utf-8") as f:
         f.write("# Language behavior validation\n\n")
 
+        f.write("This evaluation compares manually specified expected results ")
+        f.write("against bounded and sequential backends using both structural ")
+        f.write("and product intersection strategies.\n\n")
+
         f.write("| " + " | ".join(headers) + " |\n")
         f.write("| " + " | ".join("---" for _ in headers) + " |\n")
 
@@ -202,9 +248,11 @@ def write_markdown(results: list[BehaviorResult], path: str) -> None:
         f.write("\n")
         f.write("## Notes\n\n")
         f.write("- `expected` is the manually specified expected language result.\n")
-        f.write("- `bounded` is the result of the bounded combinational encoding.\n")
-        f.write("- `sequential` is the result of the sequential latch-based encoding.\n")
-        f.write("- `OK` means that both backends agree with the expected result.\n")
+        f.write("- `bounded_structural` uses the bounded backend with structural intersection encoding.\n")
+        f.write("- `bounded_product` uses the bounded backend with explicit product automata for intersection.\n")
+        f.write("- `sequential_structural` uses the sequential backend with parallel circuit composition.\n")
+        f.write("- `sequential_product` uses the sequential backend with explicit product automata for intersection.\n")
+        f.write("- `OK` means that all evaluated backend/strategy combinations agree with the expected result.\n")
         f.write("- The selected positive examples are within the configured bound.\n")
 
 
