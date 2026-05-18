@@ -5,6 +5,7 @@ import sys
 EVALUATION_COMMANDS = [
     ["evaluation/evaluate_aiger_stats.py"],
     ["evaluation/evaluate_language_behavior.py"],
+    ["evaluation/evaluate_exhaustive_behavior.py"],
 ]
 
 
