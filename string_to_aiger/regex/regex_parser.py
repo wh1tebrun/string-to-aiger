@@ -96,19 +96,83 @@ class RegexParser:
     def parse_repeat(self) -> Regex:
         expr = self.parse_atom()
 
-        while self.current() in ("*", "+", "?"):
-            operator = self.consume()
+        while self.current() in ("*", "+", "?", "{"):
+            operator = self.current()
 
             if operator == "*":
+                self.consume("*")
                 expr = Star(expr)
             elif operator == "+":
+                self.consume("+")
                 expr = Concat(expr, Star(expr))
             elif operator == "?":
+                self.consume("?")
                 expr = UnionExpr(Empty(), expr)
+            elif operator == "{":
+                expr = self.parse_bounded_repetition(expr)
             else:
                 raise AssertionError(f"Unknown repetition operator: {operator}")
 
         return expr
+
+    def parse_bounded_repetition(self, expr: Regex) -> Regex:
+        self.consume("{")
+
+        lower = self.parse_non_negative_integer("lower repetition bound")
+
+        if self.current() == "}":
+            self.consume("}")
+            upper = lower
+        elif self.current() == ",":
+            self.consume(",")
+
+            if self.current() in (None, "}"):
+                raise ValueError("Open-ended bounded repetition is not supported")
+
+            upper = self.parse_non_negative_integer("upper repetition bound")
+            self.consume("}")
+        else:
+            raise ValueError(
+                f"Expected ',' or '}}' in bounded repetition at position {self.pos}"
+            )
+
+        if upper < lower:
+            raise ValueError(
+                f"Invalid bounded repetition range: {lower},{upper}"
+            )
+
+        return self.repeat_between(expr, lower, upper)
+
+    def parse_non_negative_integer(self, description: str) -> int:
+        ch = self.current()
+
+        if ch is None or not ch.isdigit():
+            raise ValueError(f"Expected {description} at position {self.pos}")
+        digits = []
+
+        while True:
+            ch = self.current()
+
+            if ch is None or not ch.isdigit():
+                break
+
+            digits.append(self.consume())
+
+        return int("".join(digits))
+
+    def repeat_between(self, expr: Regex, lower: int, upper: int) -> Regex:
+        parts: list[Regex] = []
+
+        for _ in range(lower):
+            parts.append(expr)
+
+        for _ in range(upper - lower):
+            parts.append(UnionExpr(Empty(), expr))
+
+        if not parts:
+            return Empty()
+
+        return self.concat_all(parts)
 
     def parse_atom(self) -> Regex:
         ch = self.current()
@@ -128,7 +192,7 @@ class RegexParser:
         if ch == "[":
             return self.parse_character_class()
 
-        if ch in "|&)*]+?":
+        if ch in "|&)*]+?{}":
             raise ValueError(f"Unexpected character '{ch}' at position {self.pos}")
 
         return Char(self.consume())
@@ -199,6 +263,17 @@ class RegexParser:
 
         for expr in expressions[1:]:
             result = UnionExpr(result, expr)
+
+        return result
+
+    def concat_all(self, expressions: list[Regex]) -> Regex:
+        if not expressions:
+            return Empty()
+
+        result = expressions[0]
+
+        for expr in expressions[1:]:
+            result = Concat(result, expr)
 
         return result
 

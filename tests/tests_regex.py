@@ -109,6 +109,54 @@ def test_regex_parser_rejects_leading_optional():
         pass
 
 
+def test_regex_parser_rejects_leading_bounded_repetition():
+    try:
+        parse_regex("{2}a")
+        assert False, "Expected ValueError for leading bounded repetition"
+    except ValueError:
+        pass
+
+
+def test_regex_parser_rejects_empty_bounded_repetition():
+    try:
+        parse_regex("a{}")
+        assert False, "Expected ValueError for empty bounded repetition"
+    except ValueError:
+        pass
+
+
+def test_regex_parser_rejects_missing_lower_bounded_repetition():
+    try:
+        parse_regex("a{,2}")
+        assert False, "Expected ValueError for missing lower repetition bound"
+    except ValueError:
+        pass
+
+
+def test_regex_parser_rejects_open_ended_bounded_repetition():
+    try:
+        parse_regex("a{2,}")
+        assert False, "Expected ValueError for open-ended bounded repetition"
+    except ValueError:
+        pass
+
+
+def test_regex_parser_rejects_invalid_bounded_repetition_range():
+    try:
+        parse_regex("a{3,2}")
+        assert False, "Expected ValueError for invalid bounded repetition range"
+    except ValueError:
+        pass
+
+
+def test_regex_parser_rejects_unterminated_bounded_repetition():
+    try:
+        parse_regex("a{2")
+        assert False, "Expected ValueError for unterminated bounded repetition"
+    except ValueError:
+        pass
+
+
 def test_nfa_accepts_star():
     ast = parse_regex("a*")
     nfa = build_nfa(ast)
@@ -239,6 +287,92 @@ def test_nfa_accepts_character_class_optional_operator():
     assert accepts(nfa, "c") is False
 
 
+def test_nfa_accepts_exact_bounded_repetition():
+    ast = parse_regex("a{3}")
+    nfa = build_nfa(ast)
+
+    assert accepts(nfa, "aaa") is True
+
+    assert accepts(nfa, "") is False
+    assert accepts(nfa, "a") is False
+    assert accepts(nfa, "aa") is False
+    assert accepts(nfa, "aaaa") is False
+
+
+def test_nfa_accepts_zero_exact_bounded_repetition():
+    ast = parse_regex("a{0}")
+    nfa = build_nfa(ast)
+
+    assert accepts(nfa, "") is True
+
+    assert accepts(nfa, "a") is False
+    assert accepts(nfa, "aa") is False
+
+
+def test_nfa_accepts_range_bounded_repetition():
+    ast = parse_regex("a{1,3}")
+    nfa = build_nfa(ast)
+
+    assert accepts(nfa, "a") is True
+    assert accepts(nfa, "aa") is True
+    assert accepts(nfa, "aaa") is True
+
+    assert accepts(nfa, "") is False
+    assert accepts(nfa, "aaaa") is False
+    assert accepts(nfa, "b") is False
+
+
+def test_nfa_accepts_zero_lower_range_bounded_repetition():
+    ast = parse_regex("a{0,2}")
+    nfa = build_nfa(ast)
+
+    assert accepts(nfa, "") is True
+    assert accepts(nfa, "a") is True
+    assert accepts(nfa, "aa") is True
+
+    assert accepts(nfa, "aaa") is False
+    assert accepts(nfa, "b") is False
+
+
+def test_nfa_accepts_group_exact_bounded_repetition():
+    ast = parse_regex("(ab){2}")
+    nfa = build_nfa(ast)
+
+    assert accepts(nfa, "abab") is True
+
+    assert accepts(nfa, "") is False
+    assert accepts(nfa, "ab") is False
+    assert accepts(nfa, "ababab") is False
+    assert accepts(nfa, "aba") is False
+
+
+def test_nfa_accepts_group_range_bounded_repetition():
+    ast = parse_regex("(ab){1,2}")
+    nfa = build_nfa(ast)
+
+    assert accepts(nfa, "ab") is True
+    assert accepts(nfa, "abab") is True
+
+    assert accepts(nfa, "") is False
+    assert accepts(nfa, "ababab") is False
+    assert accepts(nfa, "a") is False
+
+
+def test_nfa_accepts_character_class_exact_bounded_repetition():
+    ast = parse_regex("[ab]{2}")
+    nfa = build_nfa(ast)
+
+    assert accepts(nfa, "aa") is True
+    assert accepts(nfa, "ab") is True
+    assert accepts(nfa, "ba") is True
+    assert accepts(nfa, "bb") is True
+
+    assert accepts(nfa, "") is False
+    assert accepts(nfa, "a") is False
+    assert accepts(nfa, "aaa") is False
+    assert accepts(nfa, "ac") is False
+
+
 def test_nfa_accepts_escaped_star_literal():
     ast = parse_regex("a\\*")
     nfa = build_nfa(ast)
@@ -290,6 +424,17 @@ def test_nfa_accepts_escaped_optional_literal():
 
     assert accepts(nfa, "a") is False
     assert accepts(nfa, "aa") is False
+
+
+def test_nfa_accepts_escaped_bounded_repetition_literals():
+    ast = parse_regex("a\\{2\\}")
+    nfa = build_nfa(ast)
+
+    assert accepts(nfa, "a{2}") is True
+
+    assert accepts(nfa, "aa") is False
+    assert accepts(nfa, "a") is False
+    assert accepts(nfa, "a{") is False
 
 
 def test_nfa_accepts_escaped_parentheses_literals():
@@ -425,6 +570,46 @@ def test_bounded_encoding_optional_operator():
     assert evaluate(expr, "b") is False
 
 
+def test_bounded_encoding_exact_bounded_repetition():
+    ast = parse_regex("a{3}")
+    nfa = build_nfa(ast)
+    expr = compile_nfa_bounded(nfa, bound=3)
+
+    assert evaluate(expr, "aaa") is True
+
+    assert evaluate(expr, "") is False
+    assert evaluate(expr, "a") is False
+    assert evaluate(expr, "aa") is False
+    assert evaluate(expr, "aaaa") is False
+
+
+def test_bounded_encoding_range_bounded_repetition():
+    ast = parse_regex("a{1,3}")
+    nfa = build_nfa(ast)
+    expr = compile_nfa_bounded(nfa, bound=3)
+
+    assert evaluate(expr, "a") is True
+    assert evaluate(expr, "aa") is True
+    assert evaluate(expr, "aaa") is True
+
+    assert evaluate(expr, "") is False
+    assert evaluate(expr, "aaaa") is False
+    assert evaluate(expr, "b") is False
+
+
+def test_bounded_encoding_zero_lower_bounded_repetition():
+    ast = parse_regex("a{0,2}")
+    nfa = build_nfa(ast)
+    expr = compile_nfa_bounded(nfa, bound=2)
+
+    assert evaluate(expr, "") is True
+    assert evaluate(expr, "a") is True
+    assert evaluate(expr, "aa") is True
+
+    assert evaluate(expr, "aaa") is False
+    assert evaluate(expr, "b") is False
+
+
 def test_bounded_encoding_escaped_star_literal():
     ast = parse_regex("a\\*")
     nfa = build_nfa(ast)
@@ -461,6 +646,12 @@ def run_tests():
     test_regex_parser_rejects_trailing_escape_in_character_class()
     test_regex_parser_rejects_leading_plus()
     test_regex_parser_rejects_leading_optional()
+    test_regex_parser_rejects_leading_bounded_repetition()
+    test_regex_parser_rejects_empty_bounded_repetition()
+    test_regex_parser_rejects_missing_lower_bounded_repetition()
+    test_regex_parser_rejects_open_ended_bounded_repetition()
+    test_regex_parser_rejects_invalid_bounded_repetition_range()
+    test_regex_parser_rejects_unterminated_bounded_repetition()
     test_nfa_accepts_star()
     test_nfa_accepts_ab_star()
     test_nfa_accepts_character_class_star()
@@ -471,11 +662,19 @@ def run_tests():
     test_nfa_accepts_group_optional_operator()
     test_nfa_accepts_character_class_plus_operator()
     test_nfa_accepts_character_class_optional_operator()
+    test_nfa_accepts_exact_bounded_repetition()
+    test_nfa_accepts_zero_exact_bounded_repetition()
+    test_nfa_accepts_range_bounded_repetition()
+    test_nfa_accepts_zero_lower_range_bounded_repetition()
+    test_nfa_accepts_group_exact_bounded_repetition()
+    test_nfa_accepts_group_range_bounded_repetition()
+    test_nfa_accepts_character_class_exact_bounded_repetition()
     test_nfa_accepts_escaped_star_literal()
     test_nfa_accepts_escaped_union_literal()
     test_nfa_accepts_escaped_intersection_literal()
     test_nfa_accepts_escaped_plus_literal()
     test_nfa_accepts_escaped_optional_literal()
+    test_nfa_accepts_escaped_bounded_repetition_literals()
     test_nfa_accepts_escaped_parentheses_literals()
     test_nfa_accepts_escaped_bracket_literals()
     test_nfa_accepts_escaped_backslash_literal()
@@ -486,6 +685,9 @@ def run_tests():
     test_bounded_encoding_character_class_range()
     test_bounded_encoding_plus_operator()
     test_bounded_encoding_optional_operator()
+    test_bounded_encoding_exact_bounded_repetition()
+    test_bounded_encoding_range_bounded_repetition()
+    test_bounded_encoding_zero_lower_bounded_repetition()
     test_bounded_encoding_escaped_star_literal()
     test_regex_to_aiger_output()
 
