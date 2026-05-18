@@ -24,6 +24,14 @@ class RegexParser:
             return None
         return self.text[self.pos]
 
+    def peek(self, offset: int = 1) -> str | None:
+        index = self.pos + offset
+
+        if index >= len(self.text):
+            return None
+
+        return self.text[index]
+
     def consume(self, expected: str | None = None) -> str:
         ch = self.current()
 
@@ -97,10 +105,69 @@ class RegexParser:
             self.consume(")")
             return expr
 
-        if ch in "|&)*":
+        if ch == "[":
+            return self.parse_character_class()
+
+        if ch in "|&)*]":
             raise ValueError(f"Unexpected character '{ch}' at position {self.pos}")
 
         return Char(self.consume())
+
+    def parse_character_class(self) -> Regex:
+        self.consume("[")
+
+        options: list[Regex] = []
+
+        while True:
+            ch = self.current()
+
+            if ch is None:
+                raise ValueError("Unterminated character class")
+
+            if ch == "]":
+                self.consume("]")
+                break
+
+            start = self.consume()
+
+            if start == "[":
+                raise ValueError(f"Unexpected '[' inside character class at position {self.pos - 1}")
+
+            if self.current() == "-" and self.peek() not in (None, "]"):
+                self.consume("-")
+                end = self.consume()
+
+                if end in "[]":
+                    raise ValueError("Invalid character range in character class")
+
+                options.extend(self.expand_range(start, end))
+            else:
+                options.append(Char(start))
+
+        if not options:
+            raise ValueError("Character class must not be empty")
+
+        return self.union_all(options)
+
+    def expand_range(self, start: str, end: str) -> list[Regex]:
+        if ord(start) > ord(end):
+            raise ValueError(f"Invalid character range: {start}-{end}")
+
+        return [
+            Char(chr(code))
+            for code in range(ord(start), ord(end) + 1)
+        ]
+
+    def union_all(self, expressions: list[Regex]) -> Regex:
+        if not expressions:
+            raise ValueError("Expected at least one expression")
+
+        result = expressions[0]
+
+        for expr in expressions[1:]:
+            result = UnionExpr(result, expr)
+
+        return result
 
 
 def parse_regex(text: str) -> Regex:
