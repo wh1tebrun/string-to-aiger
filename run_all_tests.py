@@ -6,6 +6,7 @@ TEST_COMMANDS = [
     ["tests/tests.py"],
     ["tests/tests_regex.py"],
     ["tests/tests_sequential.py"],
+    ["tests/tests_sequential_trace.py"],
     ["tests/tests_intersection.py"],
     ["tests/tests_sequential_intersection.py"],
     ["tests/tests_cli.py"],

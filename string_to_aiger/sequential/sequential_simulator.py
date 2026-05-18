@@ -1,6 +1,6 @@
-from string_to_aiger.logic.circuit import Expr
 from string_to_aiger.logic.evaluator import evaluate
 from .sequential_circuit import SequentialCircuit
+from .sequential_trace import validate_trace
 
 
 def build_env(
@@ -29,8 +29,12 @@ def initial_latch_values(circuit: SequentialCircuit) -> dict[str, bool]:
 def simulate(
     circuit: SequentialCircuit,
     trace: list[dict[str, bool]],
+    validate: bool = True,
 ) -> list[dict[str, bool]]:
     """Simulate a sequential circuit over a finite input trace."""
+    if validate:
+        validate_trace(circuit, trace)
+
     latch_values = initial_latch_values(circuit)
     outputs_per_step: list[dict[str, bool]] = []
 

@@ -4,7 +4,7 @@ import sys
 ROOT_DIR = os.path.dirname(os.path.dirname(__file__))
 sys.path.append(ROOT_DIR)
 
-from demos.sequential_astar_demo import build_a_star_sequential_circuit  # noqa: E402
+from sequential_astar_demo import build_a_star_sequential_circuit  # noqa: E402
 from string_to_aiger.sequential.sequential_simulator import simulate  # noqa: E402
 
 
@@ -13,12 +13,11 @@ def word_to_trace(word: str) -> list[dict[str, bool]]:
 
     for ch in word:
         trace.append({
-            "is_a": ch == "a",
+            f"is_{ch}": True,
             "end": False,
         })
 
     trace.append({
-        "is_a": False,
         "end": True,
     })
 
