@@ -75,12 +75,24 @@ def test_length_zero_lower_range_bounded_repetition():
     assert_length("a{0,2}", min_length=0, max_length=2)
 
 
+def test_length_open_ended_bounded_repetition():
+    assert_length("a{2,}", min_length=2, max_length=None)
+
+
+def test_length_zero_lower_open_ended_bounded_repetition():
+    assert_length("a{0,}", min_length=0, max_length=None)
+
+
 def test_length_group_exact_bounded_repetition():
     assert_length("(ab){2}", min_length=4, max_length=4)
 
 
 def test_length_group_range_bounded_repetition():
     assert_length("(ab){1,3}", min_length=2, max_length=6)
+
+
+def test_length_group_open_ended_bounded_repetition():
+    assert_length("(ab){2,}", min_length=4, max_length=None)
 
 
 def test_length_character_class_range_bounded_repetition():
@@ -115,6 +127,14 @@ def test_bound_complete_for_infinite_regex():
     assert is_bound_complete(ast, 100) is False
 
 
+def test_bound_complete_for_open_ended_repetition():
+    ast = parse_regex("a{2,}")
+
+    assert is_bound_complete(ast, 0) is False
+    assert is_bound_complete(ast, 2) is False
+    assert is_bound_complete(ast, 100) is False
+
+
 def test_bound_complete_rejects_negative_bound():
     ast = parse_regex("a")
 
@@ -139,14 +159,18 @@ def run_tests():
     test_length_zero_exact_bounded_repetition()
     test_length_range_bounded_repetition()
     test_length_zero_lower_range_bounded_repetition()
+    test_length_open_ended_bounded_repetition()
+    test_length_zero_lower_open_ended_bounded_repetition()
     test_length_group_exact_bounded_repetition()
     test_length_group_range_bounded_repetition()
+    test_length_group_open_ended_bounded_repetition()
     test_length_character_class_range_bounded_repetition()
     test_length_escaped_literal()
     test_length_intersection_is_conservative()
     test_length_intersection_with_finite_side_has_finite_upper_bound()
     test_bound_complete_for_finite_regex()
     test_bound_complete_for_infinite_regex()
+    test_bound_complete_for_open_ended_repetition()
     test_bound_complete_rejects_negative_bound()
 
     print("All regex length tests passed.")

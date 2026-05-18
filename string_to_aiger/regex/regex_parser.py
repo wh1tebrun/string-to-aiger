@@ -122,19 +122,24 @@ class RegexParser:
 
         if self.current() == "}":
             self.consume("}")
-            upper = lower
-        elif self.current() == ",":
-            self.consume(",")
+            return self.repeat_between(expr, lower, lower)
 
-            if self.current() in (None, "}"):
-                raise ValueError("Open-ended bounded repetition is not supported")
-
-            upper = self.parse_non_negative_integer("upper repetition bound")
-            self.consume("}")
-        else:
+        if self.current() != ",":
             raise ValueError(
                 f"Expected ',' or '}}' in bounded repetition at position {self.pos}"
             )
+
+        self.consume(",")
+
+        if self.current() is None:
+            raise ValueError("Unterminated bounded repetition")
+
+        if self.current() == "}":
+            self.consume("}")
+            return self.repeat_at_least(expr, lower)
+
+        upper = self.parse_non_negative_integer("upper repetition bound")
+        self.consume("}")
 
         if upper < lower:
             raise ValueError(
@@ -148,6 +153,7 @@ class RegexParser:
 
         if ch is None or not ch.isdigit():
             raise ValueError(f"Expected {description} at position {self.pos}")
+
         digits = []
 
         while True:
@@ -171,6 +177,16 @@ class RegexParser:
 
         if not parts:
             return Empty()
+
+        return self.concat_all(parts)
+
+    def repeat_at_least(self, expr: Regex, lower: int) -> Regex:
+        parts: list[Regex] = []
+
+        for _ in range(lower):
+            parts.append(expr)
+
+        parts.append(Star(expr))
 
         return self.concat_all(parts)
 
