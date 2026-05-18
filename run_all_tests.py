@@ -12,6 +12,7 @@ TEST_COMMANDS = [
     ["tests/tests_evaluation.py"],
     ["tests/tests_nfa_product.py"],
     ["tests/tests_product_backend.py"],
+    ["tests/tests_alphabet.py"],
 ]
 
 

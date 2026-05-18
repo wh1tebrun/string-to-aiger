@@ -1,4 +1,5 @@
 from string_to_aiger.nfa.nfa import NFA, State
+from string_to_aiger.nfa.nfa_alphabet import nfa_alphabet
 from string_to_aiger.logic.circuit import InputVar, And, Expr, and_all, or_all
 from .sequential_circuit import SequentialCircuit
 
@@ -32,18 +33,6 @@ def epsilon_reachability(nfa: NFA) -> dict[State, set[State]]:
     return result
 
 
-def alphabet(nfa: NFA) -> set[str]:
-    """Return all non-epsilon symbols used by the NFA."""
-    symbols: set[str] = set()
-
-    for edges in nfa.transitions.values():
-        for symbol, _target in edges:
-            if symbol is not None:
-                symbols.add(symbol)
-
-    return symbols
-
-
 def compile_nfa_to_sequential(nfa: NFA) -> SequentialCircuit:
     """Compile an NFA into a latch-based sequential circuit.
 
@@ -58,7 +47,7 @@ def compile_nfa_to_sequential(nfa: NFA) -> SequentialCircuit:
 
     circuit.add_input("end")
 
-    for symbol in sorted(alphabet(nfa)):
+    for symbol in sorted(nfa_alphabet(nfa)):
         circuit.add_input(symbol_input_name(symbol))
 
     initial_states = eps[nfa.start]
