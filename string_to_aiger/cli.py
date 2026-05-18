@@ -3,6 +3,7 @@ import os
 
 from string_to_aiger.regex.regex_bounded_compiler import compile_regex_bounded
 from string_to_aiger.aiger.aiger import compile_expr_to_aiger
+from string_to_aiger.aiger.aiger_validator import validate_aiger
 from string_to_aiger.sequential.sequential_regex_compiler import compile_regex_to_sequential
 from string_to_aiger.sequential.sequential_aiger_writer import SequentialAigerWriter
 
@@ -76,6 +77,12 @@ def build_parser() -> argparse.ArgumentParser:
         help="Output path for the generated ASCII AIGER file.",
     )
 
+    parser.add_argument(
+        "--skip-validation",
+        action="store_true",
+        help="Skip internal structural validation of the generated AIGER text.",
+    )
+
     return parser
 
 
@@ -89,13 +96,21 @@ def main() -> int:
     try:
         if args.input_file is not None:
             pattern = read_pattern_from_file(args.input_file)
-        else:
+        elif args.pattern is not None:
             pattern = args.pattern
+        else:
+            parser.error("Either --pattern or --input-file must be provided")
 
         if args.backend == "bounded":
             aiger_text = compile_bounded(pattern, args.bound)
         else:
             aiger_text = compile_sequential(pattern)
+
+        if args.skip_validation:
+            validation_status = "skipped"
+        else:
+            validate_aiger(aiger_text)
+            validation_status = "passed"
 
         write_output(args.output, aiger_text)
 
@@ -108,6 +123,7 @@ def main() -> int:
     if args.backend == "bounded":
         print("Bound:", args.bound)
 
+    print("AIGER validation:", validation_status)
     print("Written to:", args.output)
 
     return 0
