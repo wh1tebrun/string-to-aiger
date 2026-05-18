@@ -93,6 +93,22 @@ def test_regex_parser_rejects_trailing_escape_in_character_class():
         pass
 
 
+def test_regex_parser_rejects_leading_plus():
+    try:
+        parse_regex("+a")
+        assert False, "Expected ValueError for leading plus"
+    except ValueError:
+        pass
+
+
+def test_regex_parser_rejects_leading_optional():
+    try:
+        parse_regex("?a")
+        assert False, "Expected ValueError for leading optional"
+    except ValueError:
+        pass
+
+
 def test_nfa_accepts_star():
     ast = parse_regex("a*")
     nfa = build_nfa(ast)
@@ -147,6 +163,82 @@ def test_nfa_accepts_character_class_range():
     assert accepts(nfa, "abd") is False
 
 
+def test_nfa_accepts_plus_operator():
+    ast = parse_regex("a+")
+    nfa = build_nfa(ast)
+
+    assert accepts(nfa, "a") is True
+    assert accepts(nfa, "aa") is True
+    assert accepts(nfa, "aaa") is True
+
+    assert accepts(nfa, "") is False
+    assert accepts(nfa, "b") is False
+    assert accepts(nfa, "ab") is False
+
+
+def test_nfa_accepts_group_plus_operator():
+    ast = parse_regex("(ab)+")
+    nfa = build_nfa(ast)
+
+    assert accepts(nfa, "ab") is True
+    assert accepts(nfa, "abab") is True
+    assert accepts(nfa, "ababab") is True
+
+    assert accepts(nfa, "") is False
+    assert accepts(nfa, "a") is False
+    assert accepts(nfa, "aba") is False
+
+
+def test_nfa_accepts_optional_operator():
+    ast = parse_regex("a?")
+    nfa = build_nfa(ast)
+
+    assert accepts(nfa, "") is True
+    assert accepts(nfa, "a") is True
+
+    assert accepts(nfa, "aa") is False
+    assert accepts(nfa, "b") is False
+
+
+def test_nfa_accepts_group_optional_operator():
+    ast = parse_regex("(ab)?")
+    nfa = build_nfa(ast)
+
+    assert accepts(nfa, "") is True
+    assert accepts(nfa, "ab") is True
+
+    assert accepts(nfa, "a") is False
+    assert accepts(nfa, "b") is False
+    assert accepts(nfa, "abab") is False
+
+
+def test_nfa_accepts_character_class_plus_operator():
+    ast = parse_regex("[ab]+")
+    nfa = build_nfa(ast)
+
+    assert accepts(nfa, "a") is True
+    assert accepts(nfa, "b") is True
+    assert accepts(nfa, "ab") is True
+    assert accepts(nfa, "ba") is True
+    assert accepts(nfa, "abba") is True
+
+    assert accepts(nfa, "") is False
+    assert accepts(nfa, "c") is False
+    assert accepts(nfa, "abc") is False
+
+
+def test_nfa_accepts_character_class_optional_operator():
+    ast = parse_regex("[ab]?")
+    nfa = build_nfa(ast)
+
+    assert accepts(nfa, "") is True
+    assert accepts(nfa, "a") is True
+    assert accepts(nfa, "b") is True
+
+    assert accepts(nfa, "ab") is False
+    assert accepts(nfa, "c") is False
+
+
 def test_nfa_accepts_escaped_star_literal():
     ast = parse_regex("a\\*")
     nfa = build_nfa(ast)
@@ -178,6 +270,26 @@ def test_nfa_accepts_escaped_intersection_literal():
     assert accepts(nfa, "a") is False
     assert accepts(nfa, "b") is False
     assert accepts(nfa, "ab") is False
+
+
+def test_nfa_accepts_escaped_plus_literal():
+    ast = parse_regex("a\\+")
+    nfa = build_nfa(ast)
+
+    assert accepts(nfa, "a+") is True
+
+    assert accepts(nfa, "a") is False
+    assert accepts(nfa, "aa") is False
+
+
+def test_nfa_accepts_escaped_optional_literal():
+    ast = parse_regex("a\\?")
+    nfa = build_nfa(ast)
+
+    assert accepts(nfa, "a?") is True
+
+    assert accepts(nfa, "a") is False
+    assert accepts(nfa, "aa") is False
 
 
 def test_nfa_accepts_escaped_parentheses_literals():
@@ -285,6 +397,34 @@ def test_bounded_encoding_character_class_range():
     assert evaluate(expr, "abd") is False
 
 
+def test_bounded_encoding_plus_operator():
+    ast = parse_regex("a+")
+    nfa = build_nfa(ast)
+    expr = compile_nfa_bounded(nfa, bound=3)
+
+    assert evaluate(expr, "a") is True
+    assert evaluate(expr, "aa") is True
+    assert evaluate(expr, "aaa") is True
+
+    # Rejected because the bound is 3.
+    assert evaluate(expr, "aaaa") is False
+
+    assert evaluate(expr, "") is False
+    assert evaluate(expr, "b") is False
+
+
+def test_bounded_encoding_optional_operator():
+    ast = parse_regex("a?")
+    nfa = build_nfa(ast)
+    expr = compile_nfa_bounded(nfa, bound=2)
+
+    assert evaluate(expr, "") is True
+    assert evaluate(expr, "a") is True
+
+    assert evaluate(expr, "aa") is False
+    assert evaluate(expr, "b") is False
+
+
 def test_bounded_encoding_escaped_star_literal():
     ast = parse_regex("a\\*")
     nfa = build_nfa(ast)
@@ -319,13 +459,23 @@ def run_tests():
     test_regex_parser_rejects_invalid_character_range()
     test_regex_parser_rejects_trailing_escape()
     test_regex_parser_rejects_trailing_escape_in_character_class()
+    test_regex_parser_rejects_leading_plus()
+    test_regex_parser_rejects_leading_optional()
     test_nfa_accepts_star()
     test_nfa_accepts_ab_star()
     test_nfa_accepts_character_class_star()
     test_nfa_accepts_character_class_range()
+    test_nfa_accepts_plus_operator()
+    test_nfa_accepts_group_plus_operator()
+    test_nfa_accepts_optional_operator()
+    test_nfa_accepts_group_optional_operator()
+    test_nfa_accepts_character_class_plus_operator()
+    test_nfa_accepts_character_class_optional_operator()
     test_nfa_accepts_escaped_star_literal()
     test_nfa_accepts_escaped_union_literal()
     test_nfa_accepts_escaped_intersection_literal()
+    test_nfa_accepts_escaped_plus_literal()
+    test_nfa_accepts_escaped_optional_literal()
     test_nfa_accepts_escaped_parentheses_literals()
     test_nfa_accepts_escaped_bracket_literals()
     test_nfa_accepts_escaped_backslash_literal()
@@ -334,6 +484,8 @@ def run_tests():
     test_bounded_encoding_a_star()
     test_bounded_encoding_ab_star()
     test_bounded_encoding_character_class_range()
+    test_bounded_encoding_plus_operator()
+    test_bounded_encoding_optional_operator()
     test_bounded_encoding_escaped_star_literal()
     test_regex_to_aiger_output()
 

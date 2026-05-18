@@ -1,4 +1,4 @@
-from .regex_ast import Char, Concat, UnionExpr, Intersect, Star, Regex
+from .regex_ast import Empty, Char, Concat, UnionExpr, Intersect, Star, Regex
 
 
 class RegexParser:
@@ -96,9 +96,17 @@ class RegexParser:
     def parse_repeat(self) -> Regex:
         expr = self.parse_atom()
 
-        while self.current() == "*":
-            self.consume("*")
-            expr = Star(expr)
+        while self.current() in ("*", "+", "?"):
+            operator = self.consume()
+
+            if operator == "*":
+                expr = Star(expr)
+            elif operator == "+":
+                expr = Concat(expr, Star(expr))
+            elif operator == "?":
+                expr = UnionExpr(Empty(), expr)
+            else:
+                raise AssertionError(f"Unknown repetition operator: {operator}")
 
         return expr
 
@@ -120,7 +128,7 @@ class RegexParser:
         if ch == "[":
             return self.parse_character_class()
 
-        if ch in "|&)*]":
+        if ch in "|&)*]+?":
             raise ValueError(f"Unexpected character '{ch}' at position {self.pos}")
 
         return Char(self.consume())
