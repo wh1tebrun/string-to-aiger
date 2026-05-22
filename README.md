@@ -2,7 +2,7 @@
 
 Prototype compiler from simple string and regular-expression fragments to ASCII AIGER.
 
-The project started with fixed-string disjunctions such as `abba | abb`, was then extended with regular-expression support using automata-based encodings, and now includes conjunction / intersection support using `&`, explicit product automata, bounded and sequential backends, validation scripts, and a command-line interface.
+The project started with fixed-string disjunctions such as `abba | abb`, was then extended with regular-expression support using automata-based encodings, and now includes conjunction / intersection support using `&`, explicit product automata, bounded and sequential backends, validation scripts, generated benchmark smoke tests, optional external AIGER validation, and a command-line interface.
 
 ---
 
@@ -113,6 +113,12 @@ string_to_aiger/
 └── sequential/
 ```
 
+Documentation files are stored under:
+
+```text
+docs/
+```
+
 Demo scripts are stored under:
 
 ```text
@@ -138,6 +144,25 @@ outputs/
 ```
 
 The project root contains the main entry point, runner scripts, documentation, examples, demos, tests, evaluation scripts, generated outputs, packaging metadata, and the `string_to_aiger` package.
+
+---
+
+## Documentation
+
+Additional technical documentation is stored under:
+
+```text
+docs/
+```
+
+Important documentation files:
+
+| File | Purpose |
+|---|---|
+| `docs/regex_grammar.md` | Documents the supported regex grammar, precedence rules, desugaring, escaping, and unsupported features. |
+| `docs/product_automaton.md` | Explains explicit product automaton construction for regex intersection. |
+
+These documents make the parser and intersection implementation easier to inspect, explain, and defend.
 
 ---
 
@@ -849,17 +874,26 @@ The project supports both structural and product-based intersection strategies.
 
 Milestone 4 evaluates the generated AIGER circuits on benchmark expressions.
 
-The evaluation currently contains three main parts:
+The evaluation currently contains four main parts:
 
 - AIGER statistics comparison
 - selected language behavior validation
 - exhaustive bounded language validation
+- generated benchmark smoke tests
 
 The benchmark patterns, bounds, and expected positive/negative examples are centralized in:
 
 ```text
 evaluation/benchmark_cases.py
 ```
+
+In addition to these hand-written benchmark cases, the project includes a generated benchmark smoke suite in:
+
+```text
+evaluation/generated_benchmarks.py
+```
+
+The generated benchmark suite covers supported grammar features such as repetition operators, character classes, bounded repetitions, and intersections.
 
 The statistics comparison extracts information from the AIGER header:
 
@@ -886,6 +920,8 @@ The selected language behavior validation checks whether all backend/strategy co
 
 The exhaustive bounded validation generates all words up to the benchmark-specific bound over the extracted alphabet and checks whether all backend/strategy combinations agree with the product-aware NFA result.
 
+The generated benchmark smoke tests generate systematic benchmark patterns and compare all backend/strategy combinations against product-aware NFA semantics.
+
 ---
 
 ## Milestone 4 files
@@ -898,6 +934,7 @@ The following evaluation files are currently used:
 | `evaluation/evaluate_aiger_stats.py` | Compares AIGER header statistics for backend and intersection-strategy combinations. |
 | `evaluation/evaluate_language_behavior.py` | Validates selected language behavior examples. |
 | `evaluation/evaluate_exhaustive_behavior.py` | Performs exhaustive bounded validation over benchmark alphabets. |
+| `evaluation/generated_benchmarks.py` | Runs generated benchmark smoke tests over supported grammar features. |
 | `evaluation/aiger_stats.csv` | CSV output for AIGER statistics. |
 | `evaluation/aiger_stats.md` | Markdown table output for AIGER statistics. |
 | `evaluation/language_behavior.csv` | CSV output for selected language behavior validation. |
@@ -905,6 +942,9 @@ The following evaluation files are currently used:
 | `evaluation/exhaustive_behavior.csv` | CSV output for exhaustive bounded behavior validation. |
 | `evaluation/exhaustive_behavior_summary.csv` | Summary CSV output for exhaustive bounded behavior validation. |
 | `evaluation/exhaustive_behavior.md` | Markdown output for exhaustive bounded behavior validation. |
+| `evaluation/generated_benchmarks.csv` | CSV output for generated benchmark smoke tests. |
+| `evaluation/generated_benchmarks_summary.csv` | Summary CSV output for generated benchmark smoke tests. |
+| `evaluation/generated_benchmarks.md` | Markdown output for generated benchmark smoke tests. |
 | `run_all_evaluations.py` | Runs all evaluation scripts. |
 
 ---
@@ -929,6 +969,12 @@ To run the exhaustive bounded language behavior validation:
 python evaluation/evaluate_exhaustive_behavior.py
 ```
 
+To run the generated benchmark smoke tests:
+
+```bash
+python evaluation/generated_benchmarks.py
+```
+
 To run all evaluations:
 
 ```bash
@@ -945,6 +991,9 @@ evaluation/language_behavior.md
 evaluation/exhaustive_behavior.csv
 evaluation/exhaustive_behavior_summary.csv
 evaluation/exhaustive_behavior.md
+evaluation/generated_benchmarks.csv
+evaluation/generated_benchmarks_summary.csv
+evaluation/generated_benchmarks.md
 ```
 
 These files can be used directly in the project report or presentation.
@@ -984,6 +1033,32 @@ Validation can be skipped explicitly with:
 ```bash
 --skip-validation
 ```
+
+The project also supports optional external AIGER validation.
+
+External validation can be requested through the CLI with:
+
+```bash
+--external-validation
+```
+
+An external validator command can be supplied directly with:
+
+```bash
+--external-validator-command "some-checker --input {path}"
+```
+
+If the command contains `{path}`, it is replaced with the generated AIGER file path.
+
+If the command does not contain `{path}`, the generated AIGER file path is appended automatically.
+
+The external validator can also be configured with the environment variable:
+
+```text
+STRING_TO_AIGER_EXTERNAL_AIGER_VALIDATOR
+```
+
+External validation is optional. If no external validator is configured, the step is reported as skipped instead of making the project fail.
 
 ---
 
@@ -1026,7 +1101,9 @@ For bounded compilation, the CLI reports regex length analysis:
 - whether the analysis is exact
 - whether the selected bound is complete for finite patterns
 
-The CLI also validates generated AIGER text by default.
+The CLI validates generated AIGER text internally by default.
+
+The CLI can also run optional external AIGER validation after writing the output file.
 
 Example bounded compilation with a direct pattern:
 
@@ -1064,6 +1141,18 @@ Example bounded compilation without internal validation:
 python -m string_to_aiger --pattern "a{1,3}" --backend bounded --bound 3 --skip-validation --output outputs/no_validation.aag
 ```
 
+Example bounded compilation with optional external validation:
+
+```bash
+python -m string_to_aiger --pattern "a*" --backend bounded --bound 3 --output outputs/external_checked.aag --external-validation
+```
+
+Example bounded compilation with an explicit external validator command:
+
+```bash
+python -m string_to_aiger --pattern "a*" --backend bounded --bound 3 --output outputs/external_checked.aag --external-validator-command "some-checker --input {path}"
+```
+
 The default output path is:
 
 ```text
@@ -1082,7 +1171,7 @@ The command-line interface is implemented by:
 |---|---|
 | `string_to_aiger/cli.py` | Defines the CLI argument parser and compiler dispatch logic. |
 | `string_to_aiger/__main__.py` | Enables `python -m string_to_aiger`. |
-| `tests/tests_cli.py` | Tests bounded CLI compilation, sequential CLI compilation, product strategy selection, input-file compilation, validation behavior, and invalid argument handling. |
+| `tests/tests_cli.py` | Tests bounded CLI compilation, sequential CLI compilation, product strategy selection, input-file compilation, validation behavior, external validation behavior, and invalid argument handling. |
 
 ---
 
@@ -1142,6 +1231,12 @@ To run the evaluation tests:
 python tests/tests_evaluation.py
 ```
 
+To run the generated benchmark tests:
+
+```bash
+python tests/tests_generated_benchmarks.py
+```
+
 To run the product automaton tests:
 
 ```bash
@@ -1182,6 +1277,12 @@ To run the AIGER pipeline tests:
 
 ```bash
 python tests/tests_aiger_pipeline.py
+```
+
+To run the external AIGER validator wrapper tests:
+
+```bash
+python tests/tests_external_aiger_validator.py
 ```
 
 A full local test run can be done with:
@@ -1246,6 +1347,9 @@ Examples include:
 - `evaluation/exhaustive_behavior.csv`
 - `evaluation/exhaustive_behavior_summary.csv`
 - `evaluation/exhaustive_behavior.md`
+- `evaluation/generated_benchmarks.csv`
+- `evaluation/generated_benchmarks_summary.csv`
+- `evaluation/generated_benchmarks.md`
 
 ---
 
@@ -1295,11 +1399,12 @@ generated AIGER circuits
 -> statistics comparison
 -> selected language behavior validation
 -> exhaustive bounded language validation
+-> generated benchmark smoke tests
 ```
 
 The CLI provides a direct compiler interface for bounded and sequential AIGER generation.
 
-The project also includes internal structural AIGER validation, regex length analysis, sequential trace validation, NFA cleanup utilities, and strategy-aware evaluation.
+The project also includes internal structural AIGER validation, optional external AIGER validation, regex length analysis, sequential trace validation, NFA cleanup utilities, grammar documentation, product automaton documentation, and strategy-aware evaluation.
 
 ---
 
@@ -1309,11 +1414,10 @@ The project also includes internal structural AIGER validation, regex length ana
 - The project includes regex length analysis and bound-completeness reporting, but it does not remove the need for a bound in the bounded backend.
 - The sequential backend uses a stream-based input protocol.
 - The sequential protocol is validated before simulation, but it is still a simple symbol-stream interface.
-- Exhaustive validation is bounded by the benchmark-specific bound.
+- Exhaustive validation and generated benchmark smoke tests are bounded by benchmark-specific bounds.
 - The project does not provide unbounded language equivalence checking.
-- The project does not yet integrate external AIGER tools.
-- The project includes an internal structural AIGER validator, but not certified external AIGER semantic checking.
-- The project does not yet integrate external SAT solvers or hardware model checkers.
+- The project includes optional external AIGER validation support, but certified semantic checking depends on installing and configuring an external tool.
+- The project does not yet integrate external SAT solvers or hardware model checkers into the main compilation pipeline.
 - The regex parser supports a useful fragment, but not full PCRE/Python-style regular-expression syntax.
 - Unsupported regex features include negated character classes, dot wildcard, anchors, predefined classes, lookaround, and lazy quantifiers.
 - The project includes basic NFA cleanup, but not full DFA conversion or automata minimization.
@@ -1324,14 +1428,13 @@ The project also includes internal structural AIGER validation, regex length ana
 
 Possible future improvements include:
 
-- integration with external AIGER tools
 - semantic validation using external model checkers
-- integration with SAT / hardware model checking workflows
+- deeper integration with SAT / hardware model checking workflows
 - unbounded equivalence checking for generated representations
 - DFA construction and DFA minimization
 - richer regular-expression parser features such as negated character classes and dot wildcard
-- automatic benchmark generation
 - larger benchmark suites
+- randomized benchmark generation
 - comparison with external model checking tools
 - batch CLI mode for compiling multiple patterns
 - additional CLI reporting options
@@ -1368,6 +1471,7 @@ generated AIGER circuits
 -> statistics comparison
 -> selected behavior validation
 -> exhaustive bounded behavior validation
+-> generated benchmark smoke tests
 -> command-line compilation interface
 ```
 
@@ -1379,8 +1483,8 @@ The conjunction support extends the regex fragment by allowing two expressions t
 
 The product automaton backend provides an explicit automata-theoretic strategy for compiling intersections.
 
-The evaluation scripts provide evidence that the generated circuits behave correctly on selected benchmark examples and exhaustive bounded benchmark languages.
+The evaluation scripts provide evidence that the generated circuits behave correctly on selected benchmark examples, exhaustive bounded benchmark languages, and generated benchmark smoke tests.
 
 The command-line interface makes the compiler easier to use as a small standalone tool.
 
-The internal validator, trace checker, length analysis, product strategy selection, and evaluation infrastructure make the project easier to test, explain, and extend.
+The internal validator, optional external validator wrapper, trace checker, length analysis, product strategy selection, generated benchmarks, and evaluation infrastructure make the project easier to test, explain, and extend.
