@@ -19,6 +19,7 @@ TEST_COMMANDS = [
     ["tests/tests_nfa_optimize.py"],
     ["tests/tests_aiger_validator.py"],
     ["tests/tests_aiger_pipeline.py"],
+    ["tests/tests_external_aiger_validator.py"],
 ]
 
 
