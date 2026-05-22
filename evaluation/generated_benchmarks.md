@@ -1,0 +1,359 @@
+# Generated benchmark smoke tests
+
+This evaluation uses a generated set of benchmark patterns covering supported grammar features such as repetition operators, character classes, bounded repetitions, and intersections.
+
+For every generated benchmark, all words up to the configured bound over the extracted alphabet are checked.
+
+The following results are compared:
+
+- expected result from the product-aware NFA
+- bounded backend with structural intersection encoding
+- bounded backend with explicit product automata
+- sequential backend with structural / parallel-composition intersection encoding
+- sequential backend with explicit product automata
+
+## Summary
+
+| pattern | bound | feature | alphabet | checked_words | passed | failed |
+| --- | --- | --- | --- | --- | --- | --- |
+| a* | 4 | kleene star | {a} | 5 | 5 | 0 |
+| b* | 4 | kleene star over different symbol | {b} | 5 | 5 | 0 |
+| (ab)* | 4 | grouped repetition | {a, b} | 31 | 31 | 0 |
+| (a\|b)* | 4 | union under star | {a, b} | 31 | 31 | 0 |
+| (a\|ba)* | 4 | union with different branch lengths | {a, b} | 31 | 31 | 0 |
+| [ab]* | 4 | character class | {a, b} | 31 | 31 | 0 |
+| [a-b]{2,4} | 4 | character range with bounded repetition | {a, b} | 31 | 31 | 0 |
+| a+ | 4 | one-or-more repetition | {a} | 5 | 5 | 0 |
+| b? | 4 | optional repetition | {b} | 5 | 5 | 0 |
+| a{1,3} | 4 | bounded repetition range | {a} | 5 | 5 | 0 |
+| a{2,} | 4 | open-ended bounded repetition | {a} | 5 | 5 | 0 |
+| (a\|b)*&a* | 4 | intersection structural/product comparison | {a, b} | 31 | 31 | 0 |
+| [ab]*&a* | 4 | character class with intersection | {a, b} | 31 | 31 | 0 |
+| a{1,3}&a* | 4 | bounded repetition with intersection | {a} | 5 | 5 | 0 |
+| (ab)*&(a\|b)* | 4 | grouped repetition with intersection | {a, b} | 31 | 31 | 0 |
+| a*&b* | 4 | empty-language-like intersection except epsilon | {a, b} | 31 | 31 | 0 |
+
+## Detailed results
+
+| pattern | bound | feature | word | expected | bounded_structural | bounded_product | sequential_structural | sequential_product | status |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| a* | 4 | kleene star | ε | True | True | True | True | True | OK |
+| a* | 4 | kleene star | a | True | True | True | True | True | OK |
+| a* | 4 | kleene star | aa | True | True | True | True | True | OK |
+| a* | 4 | kleene star | aaa | True | True | True | True | True | OK |
+| a* | 4 | kleene star | aaaa | True | True | True | True | True | OK |
+| b* | 4 | kleene star over different symbol | ε | True | True | True | True | True | OK |
+| b* | 4 | kleene star over different symbol | b | True | True | True | True | True | OK |
+| b* | 4 | kleene star over different symbol | bb | True | True | True | True | True | OK |
+| b* | 4 | kleene star over different symbol | bbb | True | True | True | True | True | OK |
+| b* | 4 | kleene star over different symbol | bbbb | True | True | True | True | True | OK |
+| (ab)* | 4 | grouped repetition | ε | True | True | True | True | True | OK |
+| (ab)* | 4 | grouped repetition | a | False | False | False | False | False | OK |
+| (ab)* | 4 | grouped repetition | b | False | False | False | False | False | OK |
+| (ab)* | 4 | grouped repetition | aa | False | False | False | False | False | OK |
+| (ab)* | 4 | grouped repetition | ab | True | True | True | True | True | OK |
+| (ab)* | 4 | grouped repetition | ba | False | False | False | False | False | OK |
+| (ab)* | 4 | grouped repetition | bb | False | False | False | False | False | OK |
+| (ab)* | 4 | grouped repetition | aaa | False | False | False | False | False | OK |
+| (ab)* | 4 | grouped repetition | aab | False | False | False | False | False | OK |
+| (ab)* | 4 | grouped repetition | aba | False | False | False | False | False | OK |
+| (ab)* | 4 | grouped repetition | abb | False | False | False | False | False | OK |
+| (ab)* | 4 | grouped repetition | baa | False | False | False | False | False | OK |
+| (ab)* | 4 | grouped repetition | bab | False | False | False | False | False | OK |
+| (ab)* | 4 | grouped repetition | bba | False | False | False | False | False | OK |
+| (ab)* | 4 | grouped repetition | bbb | False | False | False | False | False | OK |
+| (ab)* | 4 | grouped repetition | aaaa | False | False | False | False | False | OK |
+| (ab)* | 4 | grouped repetition | aaab | False | False | False | False | False | OK |
+| (ab)* | 4 | grouped repetition | aaba | False | False | False | False | False | OK |
+| (ab)* | 4 | grouped repetition | aabb | False | False | False | False | False | OK |
+| (ab)* | 4 | grouped repetition | abaa | False | False | False | False | False | OK |
+| (ab)* | 4 | grouped repetition | abab | True | True | True | True | True | OK |
+| (ab)* | 4 | grouped repetition | abba | False | False | False | False | False | OK |
+| (ab)* | 4 | grouped repetition | abbb | False | False | False | False | False | OK |
+| (ab)* | 4 | grouped repetition | baaa | False | False | False | False | False | OK |
+| (ab)* | 4 | grouped repetition | baab | False | False | False | False | False | OK |
+| (ab)* | 4 | grouped repetition | baba | False | False | False | False | False | OK |
+| (ab)* | 4 | grouped repetition | babb | False | False | False | False | False | OK |
+| (ab)* | 4 | grouped repetition | bbaa | False | False | False | False | False | OK |
+| (ab)* | 4 | grouped repetition | bbab | False | False | False | False | False | OK |
+| (ab)* | 4 | grouped repetition | bbba | False | False | False | False | False | OK |
+| (ab)* | 4 | grouped repetition | bbbb | False | False | False | False | False | OK |
+| (a\|b)* | 4 | union under star | ε | True | True | True | True | True | OK |
+| (a\|b)* | 4 | union under star | a | True | True | True | True | True | OK |
+| (a\|b)* | 4 | union under star | b | True | True | True | True | True | OK |
+| (a\|b)* | 4 | union under star | aa | True | True | True | True | True | OK |
+| (a\|b)* | 4 | union under star | ab | True | True | True | True | True | OK |
+| (a\|b)* | 4 | union under star | ba | True | True | True | True | True | OK |
+| (a\|b)* | 4 | union under star | bb | True | True | True | True | True | OK |
+| (a\|b)* | 4 | union under star | aaa | True | True | True | True | True | OK |
+| (a\|b)* | 4 | union under star | aab | True | True | True | True | True | OK |
+| (a\|b)* | 4 | union under star | aba | True | True | True | True | True | OK |
+| (a\|b)* | 4 | union under star | abb | True | True | True | True | True | OK |
+| (a\|b)* | 4 | union under star | baa | True | True | True | True | True | OK |
+| (a\|b)* | 4 | union under star | bab | True | True | True | True | True | OK |
+| (a\|b)* | 4 | union under star | bba | True | True | True | True | True | OK |
+| (a\|b)* | 4 | union under star | bbb | True | True | True | True | True | OK |
+| (a\|b)* | 4 | union under star | aaaa | True | True | True | True | True | OK |
+| (a\|b)* | 4 | union under star | aaab | True | True | True | True | True | OK |
+| (a\|b)* | 4 | union under star | aaba | True | True | True | True | True | OK |
+| (a\|b)* | 4 | union under star | aabb | True | True | True | True | True | OK |
+| (a\|b)* | 4 | union under star | abaa | True | True | True | True | True | OK |
+| (a\|b)* | 4 | union under star | abab | True | True | True | True | True | OK |
+| (a\|b)* | 4 | union under star | abba | True | True | True | True | True | OK |
+| (a\|b)* | 4 | union under star | abbb | True | True | True | True | True | OK |
+| (a\|b)* | 4 | union under star | baaa | True | True | True | True | True | OK |
+| (a\|b)* | 4 | union under star | baab | True | True | True | True | True | OK |
+| (a\|b)* | 4 | union under star | baba | True | True | True | True | True | OK |
+| (a\|b)* | 4 | union under star | babb | True | True | True | True | True | OK |
+| (a\|b)* | 4 | union under star | bbaa | True | True | True | True | True | OK |
+| (a\|b)* | 4 | union under star | bbab | True | True | True | True | True | OK |
+| (a\|b)* | 4 | union under star | bbba | True | True | True | True | True | OK |
+| (a\|b)* | 4 | union under star | bbbb | True | True | True | True | True | OK |
+| (a\|ba)* | 4 | union with different branch lengths | ε | True | True | True | True | True | OK |
+| (a\|ba)* | 4 | union with different branch lengths | a | True | True | True | True | True | OK |
+| (a\|ba)* | 4 | union with different branch lengths | b | False | False | False | False | False | OK |
+| (a\|ba)* | 4 | union with different branch lengths | aa | True | True | True | True | True | OK |
+| (a\|ba)* | 4 | union with different branch lengths | ab | False | False | False | False | False | OK |
+| (a\|ba)* | 4 | union with different branch lengths | ba | True | True | True | True | True | OK |
+| (a\|ba)* | 4 | union with different branch lengths | bb | False | False | False | False | False | OK |
+| (a\|ba)* | 4 | union with different branch lengths | aaa | True | True | True | True | True | OK |
+| (a\|ba)* | 4 | union with different branch lengths | aab | False | False | False | False | False | OK |
+| (a\|ba)* | 4 | union with different branch lengths | aba | True | True | True | True | True | OK |
+| (a\|ba)* | 4 | union with different branch lengths | abb | False | False | False | False | False | OK |
+| (a\|ba)* | 4 | union with different branch lengths | baa | True | True | True | True | True | OK |
+| (a\|ba)* | 4 | union with different branch lengths | bab | False | False | False | False | False | OK |
+| (a\|ba)* | 4 | union with different branch lengths | bba | False | False | False | False | False | OK |
+| (a\|ba)* | 4 | union with different branch lengths | bbb | False | False | False | False | False | OK |
+| (a\|ba)* | 4 | union with different branch lengths | aaaa | True | True | True | True | True | OK |
+| (a\|ba)* | 4 | union with different branch lengths | aaab | False | False | False | False | False | OK |
+| (a\|ba)* | 4 | union with different branch lengths | aaba | True | True | True | True | True | OK |
+| (a\|ba)* | 4 | union with different branch lengths | aabb | False | False | False | False | False | OK |
+| (a\|ba)* | 4 | union with different branch lengths | abaa | True | True | True | True | True | OK |
+| (a\|ba)* | 4 | union with different branch lengths | abab | False | False | False | False | False | OK |
+| (a\|ba)* | 4 | union with different branch lengths | abba | False | False | False | False | False | OK |
+| (a\|ba)* | 4 | union with different branch lengths | abbb | False | False | False | False | False | OK |
+| (a\|ba)* | 4 | union with different branch lengths | baaa | True | True | True | True | True | OK |
+| (a\|ba)* | 4 | union with different branch lengths | baab | False | False | False | False | False | OK |
+| (a\|ba)* | 4 | union with different branch lengths | baba | True | True | True | True | True | OK |
+| (a\|ba)* | 4 | union with different branch lengths | babb | False | False | False | False | False | OK |
+| (a\|ba)* | 4 | union with different branch lengths | bbaa | False | False | False | False | False | OK |
+| (a\|ba)* | 4 | union with different branch lengths | bbab | False | False | False | False | False | OK |
+| (a\|ba)* | 4 | union with different branch lengths | bbba | False | False | False | False | False | OK |
+| (a\|ba)* | 4 | union with different branch lengths | bbbb | False | False | False | False | False | OK |
+| [ab]* | 4 | character class | ε | True | True | True | True | True | OK |
+| [ab]* | 4 | character class | a | True | True | True | True | True | OK |
+| [ab]* | 4 | character class | b | True | True | True | True | True | OK |
+| [ab]* | 4 | character class | aa | True | True | True | True | True | OK |
+| [ab]* | 4 | character class | ab | True | True | True | True | True | OK |
+| [ab]* | 4 | character class | ba | True | True | True | True | True | OK |
+| [ab]* | 4 | character class | bb | True | True | True | True | True | OK |
+| [ab]* | 4 | character class | aaa | True | True | True | True | True | OK |
+| [ab]* | 4 | character class | aab | True | True | True | True | True | OK |
+| [ab]* | 4 | character class | aba | True | True | True | True | True | OK |
+| [ab]* | 4 | character class | abb | True | True | True | True | True | OK |
+| [ab]* | 4 | character class | baa | True | True | True | True | True | OK |
+| [ab]* | 4 | character class | bab | True | True | True | True | True | OK |
+| [ab]* | 4 | character class | bba | True | True | True | True | True | OK |
+| [ab]* | 4 | character class | bbb | True | True | True | True | True | OK |
+| [ab]* | 4 | character class | aaaa | True | True | True | True | True | OK |
+| [ab]* | 4 | character class | aaab | True | True | True | True | True | OK |
+| [ab]* | 4 | character class | aaba | True | True | True | True | True | OK |
+| [ab]* | 4 | character class | aabb | True | True | True | True | True | OK |
+| [ab]* | 4 | character class | abaa | True | True | True | True | True | OK |
+| [ab]* | 4 | character class | abab | True | True | True | True | True | OK |
+| [ab]* | 4 | character class | abba | True | True | True | True | True | OK |
+| [ab]* | 4 | character class | abbb | True | True | True | True | True | OK |
+| [ab]* | 4 | character class | baaa | True | True | True | True | True | OK |
+| [ab]* | 4 | character class | baab | True | True | True | True | True | OK |
+| [ab]* | 4 | character class | baba | True | True | True | True | True | OK |
+| [ab]* | 4 | character class | babb | True | True | True | True | True | OK |
+| [ab]* | 4 | character class | bbaa | True | True | True | True | True | OK |
+| [ab]* | 4 | character class | bbab | True | True | True | True | True | OK |
+| [ab]* | 4 | character class | bbba | True | True | True | True | True | OK |
+| [ab]* | 4 | character class | bbbb | True | True | True | True | True | OK |
+| [a-b]{2,4} | 4 | character range with bounded repetition | ε | False | False | False | False | False | OK |
+| [a-b]{2,4} | 4 | character range with bounded repetition | a | False | False | False | False | False | OK |
+| [a-b]{2,4} | 4 | character range with bounded repetition | b | False | False | False | False | False | OK |
+| [a-b]{2,4} | 4 | character range with bounded repetition | aa | True | True | True | True | True | OK |
+| [a-b]{2,4} | 4 | character range with bounded repetition | ab | True | True | True | True | True | OK |
+| [a-b]{2,4} | 4 | character range with bounded repetition | ba | True | True | True | True | True | OK |
+| [a-b]{2,4} | 4 | character range with bounded repetition | bb | True | True | True | True | True | OK |
+| [a-b]{2,4} | 4 | character range with bounded repetition | aaa | True | True | True | True | True | OK |
+| [a-b]{2,4} | 4 | character range with bounded repetition | aab | True | True | True | True | True | OK |
+| [a-b]{2,4} | 4 | character range with bounded repetition | aba | True | True | True | True | True | OK |
+| [a-b]{2,4} | 4 | character range with bounded repetition | abb | True | True | True | True | True | OK |
+| [a-b]{2,4} | 4 | character range with bounded repetition | baa | True | True | True | True | True | OK |
+| [a-b]{2,4} | 4 | character range with bounded repetition | bab | True | True | True | True | True | OK |
+| [a-b]{2,4} | 4 | character range with bounded repetition | bba | True | True | True | True | True | OK |
+| [a-b]{2,4} | 4 | character range with bounded repetition | bbb | True | True | True | True | True | OK |
+| [a-b]{2,4} | 4 | character range with bounded repetition | aaaa | True | True | True | True | True | OK |
+| [a-b]{2,4} | 4 | character range with bounded repetition | aaab | True | True | True | True | True | OK |
+| [a-b]{2,4} | 4 | character range with bounded repetition | aaba | True | True | True | True | True | OK |
+| [a-b]{2,4} | 4 | character range with bounded repetition | aabb | True | True | True | True | True | OK |
+| [a-b]{2,4} | 4 | character range with bounded repetition | abaa | True | True | True | True | True | OK |
+| [a-b]{2,4} | 4 | character range with bounded repetition | abab | True | True | True | True | True | OK |
+| [a-b]{2,4} | 4 | character range with bounded repetition | abba | True | True | True | True | True | OK |
+| [a-b]{2,4} | 4 | character range with bounded repetition | abbb | True | True | True | True | True | OK |
+| [a-b]{2,4} | 4 | character range with bounded repetition | baaa | True | True | True | True | True | OK |
+| [a-b]{2,4} | 4 | character range with bounded repetition | baab | True | True | True | True | True | OK |
+| [a-b]{2,4} | 4 | character range with bounded repetition | baba | True | True | True | True | True | OK |
+| [a-b]{2,4} | 4 | character range with bounded repetition | babb | True | True | True | True | True | OK |
+| [a-b]{2,4} | 4 | character range with bounded repetition | bbaa | True | True | True | True | True | OK |
+| [a-b]{2,4} | 4 | character range with bounded repetition | bbab | True | True | True | True | True | OK |
+| [a-b]{2,4} | 4 | character range with bounded repetition | bbba | True | True | True | True | True | OK |
+| [a-b]{2,4} | 4 | character range with bounded repetition | bbbb | True | True | True | True | True | OK |
+| a+ | 4 | one-or-more repetition | ε | False | False | False | False | False | OK |
+| a+ | 4 | one-or-more repetition | a | True | True | True | True | True | OK |
+| a+ | 4 | one-or-more repetition | aa | True | True | True | True | True | OK |
+| a+ | 4 | one-or-more repetition | aaa | True | True | True | True | True | OK |
+| a+ | 4 | one-or-more repetition | aaaa | True | True | True | True | True | OK |
+| b? | 4 | optional repetition | ε | True | True | True | True | True | OK |
+| b? | 4 | optional repetition | b | True | True | True | True | True | OK |
+| b? | 4 | optional repetition | bb | False | False | False | False | False | OK |
+| b? | 4 | optional repetition | bbb | False | False | False | False | False | OK |
+| b? | 4 | optional repetition | bbbb | False | False | False | False | False | OK |
+| a{1,3} | 4 | bounded repetition range | ε | False | False | False | False | False | OK |
+| a{1,3} | 4 | bounded repetition range | a | True | True | True | True | True | OK |
+| a{1,3} | 4 | bounded repetition range | aa | True | True | True | True | True | OK |
+| a{1,3} | 4 | bounded repetition range | aaa | True | True | True | True | True | OK |
+| a{1,3} | 4 | bounded repetition range | aaaa | False | False | False | False | False | OK |
+| a{2,} | 4 | open-ended bounded repetition | ε | False | False | False | False | False | OK |
+| a{2,} | 4 | open-ended bounded repetition | a | False | False | False | False | False | OK |
+| a{2,} | 4 | open-ended bounded repetition | aa | True | True | True | True | True | OK |
+| a{2,} | 4 | open-ended bounded repetition | aaa | True | True | True | True | True | OK |
+| a{2,} | 4 | open-ended bounded repetition | aaaa | True | True | True | True | True | OK |
+| (a\|b)*&a* | 4 | intersection structural/product comparison | ε | True | True | True | True | True | OK |
+| (a\|b)*&a* | 4 | intersection structural/product comparison | a | True | True | True | True | True | OK |
+| (a\|b)*&a* | 4 | intersection structural/product comparison | b | False | False | False | False | False | OK |
+| (a\|b)*&a* | 4 | intersection structural/product comparison | aa | True | True | True | True | True | OK |
+| (a\|b)*&a* | 4 | intersection structural/product comparison | ab | False | False | False | False | False | OK |
+| (a\|b)*&a* | 4 | intersection structural/product comparison | ba | False | False | False | False | False | OK |
+| (a\|b)*&a* | 4 | intersection structural/product comparison | bb | False | False | False | False | False | OK |
+| (a\|b)*&a* | 4 | intersection structural/product comparison | aaa | True | True | True | True | True | OK |
+| (a\|b)*&a* | 4 | intersection structural/product comparison | aab | False | False | False | False | False | OK |
+| (a\|b)*&a* | 4 | intersection structural/product comparison | aba | False | False | False | False | False | OK |
+| (a\|b)*&a* | 4 | intersection structural/product comparison | abb | False | False | False | False | False | OK |
+| (a\|b)*&a* | 4 | intersection structural/product comparison | baa | False | False | False | False | False | OK |
+| (a\|b)*&a* | 4 | intersection structural/product comparison | bab | False | False | False | False | False | OK |
+| (a\|b)*&a* | 4 | intersection structural/product comparison | bba | False | False | False | False | False | OK |
+| (a\|b)*&a* | 4 | intersection structural/product comparison | bbb | False | False | False | False | False | OK |
+| (a\|b)*&a* | 4 | intersection structural/product comparison | aaaa | True | True | True | True | True | OK |
+| (a\|b)*&a* | 4 | intersection structural/product comparison | aaab | False | False | False | False | False | OK |
+| (a\|b)*&a* | 4 | intersection structural/product comparison | aaba | False | False | False | False | False | OK |
+| (a\|b)*&a* | 4 | intersection structural/product comparison | aabb | False | False | False | False | False | OK |
+| (a\|b)*&a* | 4 | intersection structural/product comparison | abaa | False | False | False | False | False | OK |
+| (a\|b)*&a* | 4 | intersection structural/product comparison | abab | False | False | False | False | False | OK |
+| (a\|b)*&a* | 4 | intersection structural/product comparison | abba | False | False | False | False | False | OK |
+| (a\|b)*&a* | 4 | intersection structural/product comparison | abbb | False | False | False | False | False | OK |
+| (a\|b)*&a* | 4 | intersection structural/product comparison | baaa | False | False | False | False | False | OK |
+| (a\|b)*&a* | 4 | intersection structural/product comparison | baab | False | False | False | False | False | OK |
+| (a\|b)*&a* | 4 | intersection structural/product comparison | baba | False | False | False | False | False | OK |
+| (a\|b)*&a* | 4 | intersection structural/product comparison | babb | False | False | False | False | False | OK |
+| (a\|b)*&a* | 4 | intersection structural/product comparison | bbaa | False | False | False | False | False | OK |
+| (a\|b)*&a* | 4 | intersection structural/product comparison | bbab | False | False | False | False | False | OK |
+| (a\|b)*&a* | 4 | intersection structural/product comparison | bbba | False | False | False | False | False | OK |
+| (a\|b)*&a* | 4 | intersection structural/product comparison | bbbb | False | False | False | False | False | OK |
+| [ab]*&a* | 4 | character class with intersection | ε | True | True | True | True | True | OK |
+| [ab]*&a* | 4 | character class with intersection | a | True | True | True | True | True | OK |
+| [ab]*&a* | 4 | character class with intersection | b | False | False | False | False | False | OK |
+| [ab]*&a* | 4 | character class with intersection | aa | True | True | True | True | True | OK |
+| [ab]*&a* | 4 | character class with intersection | ab | False | False | False | False | False | OK |
+| [ab]*&a* | 4 | character class with intersection | ba | False | False | False | False | False | OK |
+| [ab]*&a* | 4 | character class with intersection | bb | False | False | False | False | False | OK |
+| [ab]*&a* | 4 | character class with intersection | aaa | True | True | True | True | True | OK |
+| [ab]*&a* | 4 | character class with intersection | aab | False | False | False | False | False | OK |
+| [ab]*&a* | 4 | character class with intersection | aba | False | False | False | False | False | OK |
+| [ab]*&a* | 4 | character class with intersection | abb | False | False | False | False | False | OK |
+| [ab]*&a* | 4 | character class with intersection | baa | False | False | False | False | False | OK |
+| [ab]*&a* | 4 | character class with intersection | bab | False | False | False | False | False | OK |
+| [ab]*&a* | 4 | character class with intersection | bba | False | False | False | False | False | OK |
+| [ab]*&a* | 4 | character class with intersection | bbb | False | False | False | False | False | OK |
+| [ab]*&a* | 4 | character class with intersection | aaaa | True | True | True | True | True | OK |
+| [ab]*&a* | 4 | character class with intersection | aaab | False | False | False | False | False | OK |
+| [ab]*&a* | 4 | character class with intersection | aaba | False | False | False | False | False | OK |
+| [ab]*&a* | 4 | character class with intersection | aabb | False | False | False | False | False | OK |
+| [ab]*&a* | 4 | character class with intersection | abaa | False | False | False | False | False | OK |
+| [ab]*&a* | 4 | character class with intersection | abab | False | False | False | False | False | OK |
+| [ab]*&a* | 4 | character class with intersection | abba | False | False | False | False | False | OK |
+| [ab]*&a* | 4 | character class with intersection | abbb | False | False | False | False | False | OK |
+| [ab]*&a* | 4 | character class with intersection | baaa | False | False | False | False | False | OK |
+| [ab]*&a* | 4 | character class with intersection | baab | False | False | False | False | False | OK |
+| [ab]*&a* | 4 | character class with intersection | baba | False | False | False | False | False | OK |
+| [ab]*&a* | 4 | character class with intersection | babb | False | False | False | False | False | OK |
+| [ab]*&a* | 4 | character class with intersection | bbaa | False | False | False | False | False | OK |
+| [ab]*&a* | 4 | character class with intersection | bbab | False | False | False | False | False | OK |
+| [ab]*&a* | 4 | character class with intersection | bbba | False | False | False | False | False | OK |
+| [ab]*&a* | 4 | character class with intersection | bbbb | False | False | False | False | False | OK |
+| a{1,3}&a* | 4 | bounded repetition with intersection | ε | False | False | False | False | False | OK |
+| a{1,3}&a* | 4 | bounded repetition with intersection | a | True | True | True | True | True | OK |
+| a{1,3}&a* | 4 | bounded repetition with intersection | aa | True | True | True | True | True | OK |
+| a{1,3}&a* | 4 | bounded repetition with intersection | aaa | True | True | True | True | True | OK |
+| a{1,3}&a* | 4 | bounded repetition with intersection | aaaa | False | False | False | False | False | OK |
+| (ab)*&(a\|b)* | 4 | grouped repetition with intersection | ε | True | True | True | True | True | OK |
+| (ab)*&(a\|b)* | 4 | grouped repetition with intersection | a | False | False | False | False | False | OK |
+| (ab)*&(a\|b)* | 4 | grouped repetition with intersection | b | False | False | False | False | False | OK |
+| (ab)*&(a\|b)* | 4 | grouped repetition with intersection | aa | False | False | False | False | False | OK |
+| (ab)*&(a\|b)* | 4 | grouped repetition with intersection | ab | True | True | True | True | True | OK |
+| (ab)*&(a\|b)* | 4 | grouped repetition with intersection | ba | False | False | False | False | False | OK |
+| (ab)*&(a\|b)* | 4 | grouped repetition with intersection | bb | False | False | False | False | False | OK |
+| (ab)*&(a\|b)* | 4 | grouped repetition with intersection | aaa | False | False | False | False | False | OK |
+| (ab)*&(a\|b)* | 4 | grouped repetition with intersection | aab | False | False | False | False | False | OK |
+| (ab)*&(a\|b)* | 4 | grouped repetition with intersection | aba | False | False | False | False | False | OK |
+| (ab)*&(a\|b)* | 4 | grouped repetition with intersection | abb | False | False | False | False | False | OK |
+| (ab)*&(a\|b)* | 4 | grouped repetition with intersection | baa | False | False | False | False | False | OK |
+| (ab)*&(a\|b)* | 4 | grouped repetition with intersection | bab | False | False | False | False | False | OK |
+| (ab)*&(a\|b)* | 4 | grouped repetition with intersection | bba | False | False | False | False | False | OK |
+| (ab)*&(a\|b)* | 4 | grouped repetition with intersection | bbb | False | False | False | False | False | OK |
+| (ab)*&(a\|b)* | 4 | grouped repetition with intersection | aaaa | False | False | False | False | False | OK |
+| (ab)*&(a\|b)* | 4 | grouped repetition with intersection | aaab | False | False | False | False | False | OK |
+| (ab)*&(a\|b)* | 4 | grouped repetition with intersection | aaba | False | False | False | False | False | OK |
+| (ab)*&(a\|b)* | 4 | grouped repetition with intersection | aabb | False | False | False | False | False | OK |
+| (ab)*&(a\|b)* | 4 | grouped repetition with intersection | abaa | False | False | False | False | False | OK |
+| (ab)*&(a\|b)* | 4 | grouped repetition with intersection | abab | True | True | True | True | True | OK |
+| (ab)*&(a\|b)* | 4 | grouped repetition with intersection | abba | False | False | False | False | False | OK |
+| (ab)*&(a\|b)* | 4 | grouped repetition with intersection | abbb | False | False | False | False | False | OK |
+| (ab)*&(a\|b)* | 4 | grouped repetition with intersection | baaa | False | False | False | False | False | OK |
+| (ab)*&(a\|b)* | 4 | grouped repetition with intersection | baab | False | False | False | False | False | OK |
+| (ab)*&(a\|b)* | 4 | grouped repetition with intersection | baba | False | False | False | False | False | OK |
+| (ab)*&(a\|b)* | 4 | grouped repetition with intersection | babb | False | False | False | False | False | OK |
+| (ab)*&(a\|b)* | 4 | grouped repetition with intersection | bbaa | False | False | False | False | False | OK |
+| (ab)*&(a\|b)* | 4 | grouped repetition with intersection | bbab | False | False | False | False | False | OK |
+| (ab)*&(a\|b)* | 4 | grouped repetition with intersection | bbba | False | False | False | False | False | OK |
+| (ab)*&(a\|b)* | 4 | grouped repetition with intersection | bbbb | False | False | False | False | False | OK |
+| a*&b* | 4 | empty-language-like intersection except epsilon | ε | True | True | True | True | True | OK |
+| a*&b* | 4 | empty-language-like intersection except epsilon | a | False | False | False | False | False | OK |
+| a*&b* | 4 | empty-language-like intersection except epsilon | b | False | False | False | False | False | OK |
+| a*&b* | 4 | empty-language-like intersection except epsilon | aa | False | False | False | False | False | OK |
+| a*&b* | 4 | empty-language-like intersection except epsilon | ab | False | False | False | False | False | OK |
+| a*&b* | 4 | empty-language-like intersection except epsilon | ba | False | False | False | False | False | OK |
+| a*&b* | 4 | empty-language-like intersection except epsilon | bb | False | False | False | False | False | OK |
+| a*&b* | 4 | empty-language-like intersection except epsilon | aaa | False | False | False | False | False | OK |
+| a*&b* | 4 | empty-language-like intersection except epsilon | aab | False | False | False | False | False | OK |
+| a*&b* | 4 | empty-language-like intersection except epsilon | aba | False | False | False | False | False | OK |
+| a*&b* | 4 | empty-language-like intersection except epsilon | abb | False | False | False | False | False | OK |
+| a*&b* | 4 | empty-language-like intersection except epsilon | baa | False | False | False | False | False | OK |
+| a*&b* | 4 | empty-language-like intersection except epsilon | bab | False | False | False | False | False | OK |
+| a*&b* | 4 | empty-language-like intersection except epsilon | bba | False | False | False | False | False | OK |
+| a*&b* | 4 | empty-language-like intersection except epsilon | bbb | False | False | False | False | False | OK |
+| a*&b* | 4 | empty-language-like intersection except epsilon | aaaa | False | False | False | False | False | OK |
+| a*&b* | 4 | empty-language-like intersection except epsilon | aaab | False | False | False | False | False | OK |
+| a*&b* | 4 | empty-language-like intersection except epsilon | aaba | False | False | False | False | False | OK |
+| a*&b* | 4 | empty-language-like intersection except epsilon | aabb | False | False | False | False | False | OK |
+| a*&b* | 4 | empty-language-like intersection except epsilon | abaa | False | False | False | False | False | OK |
+| a*&b* | 4 | empty-language-like intersection except epsilon | abab | False | False | False | False | False | OK |
+| a*&b* | 4 | empty-language-like intersection except epsilon | abba | False | False | False | False | False | OK |
+| a*&b* | 4 | empty-language-like intersection except epsilon | abbb | False | False | False | False | False | OK |
+| a*&b* | 4 | empty-language-like intersection except epsilon | baaa | False | False | False | False | False | OK |
+| a*&b* | 4 | empty-language-like intersection except epsilon | baab | False | False | False | False | False | OK |
+| a*&b* | 4 | empty-language-like intersection except epsilon | baba | False | False | False | False | False | OK |
+| a*&b* | 4 | empty-language-like intersection except epsilon | babb | False | False | False | False | False | OK |
+| a*&b* | 4 | empty-language-like intersection except epsilon | bbaa | False | False | False | False | False | OK |
+| a*&b* | 4 | empty-language-like intersection except epsilon | bbab | False | False | False | False | False | OK |
+| a*&b* | 4 | empty-language-like intersection except epsilon | bbba | False | False | False | False | False | OK |
+| a*&b* | 4 | empty-language-like intersection except epsilon | bbbb | False | False | False | False | False | OK |
+
+## Notes
+
+- These benchmarks are generated from the supported grammar fragment.
+- The exhaustive search is bounded by each benchmark-specific bound.
+- `OK` means that the expected NFA result and all backend/strategy results agree.

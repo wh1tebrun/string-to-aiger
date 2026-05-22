@@ -1,0 +1,17 @@
+pattern,bound,feature,alphabet,checked_words,passed,failed
+a*,4,kleene star,{a},5,5,0
+b*,4,kleene star over different symbol,{b},5,5,0
+(ab)*,4,grouped repetition,"{a, b}",31,31,0
+(a|b)*,4,union under star,"{a, b}",31,31,0
+(a|ba)*,4,union with different branch lengths,"{a, b}",31,31,0
+[ab]*,4,character class,"{a, b}",31,31,0
+"[a-b]{2,4}",4,character range with bounded repetition,"{a, b}",31,31,0
+a+,4,one-or-more repetition,{a},5,5,0
+b?,4,optional repetition,{b},5,5,0
+"a{1,3}",4,bounded repetition range,{a},5,5,0
+"a{2,}",4,open-ended bounded repetition,{a},5,5,0
+(a|b)*&a*,4,intersection structural/product comparison,"{a, b}",31,31,0
+[ab]*&a*,4,character class with intersection,"{a, b}",31,31,0
+"a{1,3}&a*",4,bounded repetition with intersection,{a},5,5,0
+(ab)*&(a|b)*,4,grouped repetition with intersection,"{a, b}",31,31,0
+a*&b*,4,empty-language-like intersection except epsilon,"{a, b}",31,31,0
