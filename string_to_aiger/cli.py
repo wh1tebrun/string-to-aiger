@@ -10,6 +10,9 @@ from string_to_aiger.aiger.aiger_pipeline import (
     validate_and_write_aiger,
     write_aiger_without_validation,
 )
+from string_to_aiger.aiger.external_aiger_validator import (
+    validate_aiger_with_external_tool,
+)
 from string_to_aiger.sequential.sequential_regex_compiler import compile_regex_to_sequential
 from string_to_aiger.sequential.product_sequential_compiler import (
     compile_regex_to_sequential_product,
@@ -136,12 +139,36 @@ def build_parser() -> argparse.ArgumentParser:
         help="Skip internal structural validation of the generated AIGER text.",
     )
 
+    parser.add_argument(
+        "--external-validation",
+        action="store_true",
+        help=(
+            "Run optional external AIGER validation after writing the output file. "
+            "If no external validator is configured, this step is skipped."
+        ),
+    )
+
+    parser.add_argument(
+        "--external-validator-command",
+        help=(
+            "External AIGER validator command. "
+            "The output path is appended automatically unless the command contains '{path}'."
+        ),
+    )
+
     return parser
 
 
 def main() -> int:
     parser = build_parser()
     args = parser.parse_args()
+
+    pattern = ""
+    analysis_lines: list[str] = []
+    validation_status = "not run"
+    run_external_validation = False
+    external_validation_status = "not requested"
+    external_validation_message = ""
 
     if args.bound < 0:
         parser.error("--bound must be non-negative")
@@ -153,8 +180,6 @@ def main() -> int:
             pattern = args.pattern
         else:
             parser.error("Either --pattern or --input-file must be provided")
-
-        analysis_lines: list[str] = []
 
         if args.backend == "bounded":
             analysis_lines = length_analysis_lines(pattern, args.bound)
@@ -176,6 +201,23 @@ def main() -> int:
             validate_and_write_aiger(args.output, aiger_text)
             validation_status = "passed"
 
+        run_external_validation = (
+            args.external_validation
+            or args.external_validator_command is not None
+        )
+
+        if run_external_validation:
+            external_result = validate_aiger_with_external_tool(
+                aiger_path=args.output,
+                command=args.external_validator_command,
+            )
+
+            external_validation_status = external_result.status
+            external_validation_message = external_result.message
+
+            if external_result.failed:
+                raise ValueError(external_result.message)
+
     except ValueError as error:
         parser.error(str(error))
 
@@ -190,6 +232,11 @@ def main() -> int:
             print(line)
 
     print("AIGER validation:", validation_status)
+
+    if run_external_validation:
+        print("External AIGER validation:", external_validation_status)
+        print("External AIGER validation message:", external_validation_message)
+
     print("Written to:", args.output)
 
     return 0

@@ -9,12 +9,32 @@ OUTPUT_DIR = os.path.join(ROOT_DIR, "outputs")
 
 
 def run_cli(args: list[str]) -> subprocess.CompletedProcess:
+    env = os.environ.copy()
+    env.pop("STRING_TO_AIGER_EXTERNAL_AIGER_VALIDATOR", None)
+
     return subprocess.run(
         [sys.executable, "-m", "string_to_aiger"] + args,
         cwd=ROOT_DIR,
         text=True,
         capture_output=True,
+        env=env,
     )
+
+
+def write_python_script(temp_dir: str, name: str, body: str) -> str:
+    path = os.path.join(temp_dir, name)
+
+    with open(path, "w", encoding="utf-8") as f:
+        f.write(body)
+
+    return path
+
+
+def python_command(script_path: str) -> str:
+    python_path = sys.executable.replace(os.sep, "/")
+    script_path = script_path.replace(os.sep, "/")
+
+    return f'"{python_path}" "{script_path}"'
 
 
 def test_cli_bounded_backend():
@@ -273,6 +293,112 @@ def test_cli_skip_validation():
         assert "o0 accept" in aiger_text
 
 
+def test_cli_external_validation_skips_without_command():
+    with tempfile.TemporaryDirectory() as temp_dir:
+        output_path = os.path.join(temp_dir, "external_skipped.aag")
+
+        result = run_cli([
+            "--pattern", "a*",
+            "--backend", "bounded",
+            "--bound", "3",
+            "--output", output_path,
+            "--external-validation",
+        ])
+
+        assert result.returncode == 0
+        assert "AIGER validation: passed" in result.stdout
+        assert "External AIGER validation: skipped" in result.stdout
+        assert "No external AIGER validator command configured." in result.stdout
+        assert os.path.exists(output_path)
+
+
+def test_cli_external_validation_passes_with_command():
+    with tempfile.TemporaryDirectory() as temp_dir:
+        output_path = os.path.join(temp_dir, "external_passed.aag")
+
+        script_path = write_python_script(
+            temp_dir,
+            "external_pass_validator.py",
+            "\n".join([
+                "import sys",
+                "with open(sys.argv[1], 'r', encoding='utf-8') as f:",
+                "    text = f.read()",
+                "assert text.startswith('aag ')",
+                "raise SystemExit(0)",
+            ]),
+        )
+
+        result = run_cli([
+            "--pattern", "a*",
+            "--backend", "bounded",
+            "--bound", "3",
+            "--output", output_path,
+            "--external-validation",
+            "--external-validator-command", python_command(script_path),
+        ])
+
+        assert result.returncode == 0
+        assert "AIGER validation: passed" in result.stdout
+        assert "External AIGER validation: passed" in result.stdout
+        assert "External AIGER validation passed." in result.stdout
+        assert os.path.exists(output_path)
+
+
+def test_cli_external_validator_command_implies_external_validation():
+    with tempfile.TemporaryDirectory() as temp_dir:
+        output_path = os.path.join(temp_dir, "external_command_implied.aag")
+
+        script_path = write_python_script(
+            temp_dir,
+            "external_implied_validator.py",
+            "\n".join([
+                "import sys",
+                "with open(sys.argv[1], 'r', encoding='utf-8') as f:",
+                "    text = f.read()",
+                "assert text.startswith('aag ')",
+                "raise SystemExit(0)",
+            ]),
+        )
+
+        result = run_cli([
+            "--pattern", "a*",
+            "--backend", "bounded",
+            "--bound", "3",
+            "--output", output_path,
+            "--external-validator-command", python_command(script_path),
+        ])
+
+        assert result.returncode == 0
+        assert "External AIGER validation: passed" in result.stdout
+        assert os.path.exists(output_path)
+
+
+def test_cli_external_validation_fails_with_failing_command():
+    with tempfile.TemporaryDirectory() as temp_dir:
+        output_path = os.path.join(temp_dir, "external_failed.aag")
+
+        script_path = write_python_script(
+            temp_dir,
+            "external_fail_validator.py",
+            "\n".join([
+                "raise SystemExit(7)",
+            ]),
+        )
+
+        result = run_cli([
+            "--pattern", "a*",
+            "--backend", "bounded",
+            "--bound", "3",
+            "--output", output_path,
+            "--external-validation",
+            "--external-validator-command", python_command(script_path),
+        ])
+
+        assert result.returncode != 0
+        assert "External AIGER validation failed." in result.stderr
+        assert os.path.exists(output_path)
+
+
 def test_cli_rejects_empty_input_file():
     with tempfile.TemporaryDirectory() as temp_dir:
         input_path = os.path.join(temp_dir, "empty.txt")
@@ -327,6 +453,10 @@ def run_tests():
     test_cli_reports_complete_bound_for_finite_pattern()
     test_cli_reports_incomplete_bound_for_finite_pattern()
     test_cli_skip_validation()
+    test_cli_external_validation_skips_without_command()
+    test_cli_external_validation_passes_with_command()
+    test_cli_external_validator_command_implies_external_validation()
+    test_cli_external_validation_fails_with_failing_command()
     test_cli_rejects_empty_input_file()
     test_cli_requires_pattern_or_input_file()
     test_cli_rejects_pattern_and_input_file_together()
