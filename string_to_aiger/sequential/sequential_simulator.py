@@ -11,6 +11,9 @@ def build_env(
     env: dict[str, bool] = {}
 
     for name in circuit.inputs:
+        # Missing inputs default to False. This keeps traces compact and also
+        # means that symbols not present in the circuit alphabet are naturally
+        # rejected because their corresponding input signal is never true.
         env[name] = inputs.get(name, False)
 
     for name in circuit.latches:

@@ -36,6 +36,9 @@ def epsilon_reachability(nfa: NFA) -> dict[State, set[State]]:
 def compile_nfa_to_sequential(nfa: NFA) -> SequentialCircuit:
     """Compile an NFA into a latch-based sequential circuit.
 
+    Each NFA state is represented by one latch. A latch is true exactly when
+    the corresponding NFA state is currently active.
+
     Input protocol:
     - In each normal step, exactly one symbol input such as is_a / is_b is true.
     - In the final step, end is true.
@@ -55,6 +58,9 @@ def compile_nfa_to_sequential(nfa: NFA) -> SequentialCircuit:
     next_exprs: dict[State, Expr] = {}
 
     for target_state in states:
+        # incoming_after_symbol[intermediate] collects all symbolic conditions
+        # under which `intermediate` can be reached after consuming exactly one
+        # input symbol from the currently active NFA states.
         incoming_after_symbol: dict[State, list[Expr]] = {
             state: []
             for state in states
@@ -65,6 +71,8 @@ def compile_nfa_to_sequential(nfa: NFA) -> SequentialCircuit:
                 if symbol is None:
                     continue
 
+                # A symbol transition can be taken iff the source state is
+                # active and the corresponding symbol input is true.
                 condition = and_all([
                     InputVar(latch_name(source)),
                     InputVar(symbol_input_name(symbol)),
@@ -75,12 +83,19 @@ def compile_nfa_to_sequential(nfa: NFA) -> SequentialCircuit:
         alternatives: list[Expr] = []
 
         for source_after_symbol in states:
+            # After taking one symbol transition, epsilon transitions may move
+            # the NFA further without consuming additional input. Therefore,
+            # target_state is reachable if it is in the epsilon closure of any
+            # intermediate state reached by a symbol transition.
             if target_state in eps[source_after_symbol]:
                 alternatives.append(or_all(incoming_after_symbol[source_after_symbol]))
 
         next_exprs[target_state] = or_all(alternatives)
 
     for state in states:
+        # Initial latch values represent the epsilon closure of the NFA start
+        # state. This is important for expressions such as a*, where the empty
+        # word may already be accepted before reading any symbol.
         circuit.add_latch(
             latch_name(state),
             next_exprs[state],
@@ -93,6 +108,8 @@ def compile_nfa_to_sequential(nfa: NFA) -> SequentialCircuit:
         if state in nfa.accepts
     ]
 
+    # Accept only on the final step, and only if some accepting NFA state is
+    # active at that point.
     accept_expr = And(
         InputVar("end"),
         or_all(accepting_states),

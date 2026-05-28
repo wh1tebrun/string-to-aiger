@@ -3,7 +3,15 @@ from .sequential_circuit import SequentialCircuit
 
 
 class SequentialAigerWriter:
-    """Serialize a SequentialCircuit into ASCII AIGER with latches."""
+    """Serialize a SequentialCircuit into ASCII AIGER with latches.
+
+    AIGER latches are written as:
+
+        current_lit next_lit reset_lit
+
+    where current_lit is the latch output, next_lit is the next-state function,
+    and reset_lit encodes the initial value.
+    """
 
     def __init__(self, circuit: SequentialCircuit):
         self.circuit = circuit
@@ -56,7 +64,10 @@ class SequentialAigerWriter:
             left_lit = self.compile_expr(expr.left)
             right_lit = self.compile_expr(expr.right)
 
-            # a OR b = ~(~a AND ~b)
+            # AIGER only has AND gates and inversion.
+            # Encode a OR b using De Morgan:
+            #
+            #   a OR b = NOT((NOT a) AND (NOT b))
             and_lit = self.new_and(
                 self.invert(left_lit),
                 self.invert(right_lit),
@@ -89,11 +100,9 @@ class SequentialAigerWriter:
             f"{num_latches} {num_outputs} {num_ands}"
         ]
 
-        # Inputs
         for name in sorted(self.circuit.inputs):
             lines.append(str(self.input_literals[name]))
 
-        # Latches
         for name, latch in self.circuit.latches.items():
             current_lit = self.latch_literals[name]
             next_lit = latch_next_literals[name]
@@ -101,23 +110,18 @@ class SequentialAigerWriter:
 
             lines.append(f"{current_lit} {next_lit} {reset_lit}")
 
-        # Outputs
         for name in output_literals:
             lines.append(str(output_literals[name]))
 
-        # AND gates
         for lhs, rhs0, rhs1 in self.and_literals:
             lines.append(f"{lhs} {rhs0} {rhs1}")
 
-        # Symbolic input names
         for index, name in enumerate(sorted(self.circuit.inputs)):
             lines.append(f"i{index} {name}")
 
-        # Symbolic latch names
         for index, name in enumerate(self.circuit.latches):
             lines.append(f"l{index} {name}")
 
-        # Symbolic output names
         for index, name in enumerate(output_literals):
             lines.append(f"o{index} {name}")
 

@@ -13,6 +13,14 @@ from string_to_aiger.sequential.sequential_aiger_writer import SequentialAigerWr
 
 
 def build_a_star_sequential_circuit() -> SequentialCircuit:
+    """Manually construct a sequential circuit for a*.
+
+    This demo is pedagogical: it shows the shape of a latch-based circuit by
+    hand. In normal use, regex patterns are compiled automatically through the
+    generic NFA-to-sequential pipeline, for example with:
+
+        compile_regex_to_sequential("a*")
+    """
     circuit = SequentialCircuit()
 
     circuit.add_input("is_a")
