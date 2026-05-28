@@ -263,6 +263,14 @@ class RegexParser:
         return self.consume()
 
     def expand_range(self, start: str, end: str) -> list[Regex]:
+        """Eagerly expand a character range into individual Char nodes.
+
+        For example, [a-c] is desugared into the alternatives a, b, and c.
+        This keeps the core regex AST small because it does not need a separate
+        character-range node.
+
+        The trade-off is that large ranges produce one Char node per character.
+        """
         if ord(start) > ord(end):
             raise ValueError(f"Invalid character range: {start}-{end}")
 

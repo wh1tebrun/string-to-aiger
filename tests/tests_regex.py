@@ -568,6 +568,45 @@ def test_bounded_encoding_ab_star():
     assert evaluate(expr, "abababa") is False
 
 
+def test_bounded_encoding_union_star():
+    ast = parse_regex("(a|b)*")
+    nfa = build_nfa(ast)
+    expr = compile_nfa_bounded(nfa, bound=4)
+
+    assert evaluate(expr, "") is True
+    assert evaluate(expr, "a") is True
+    assert evaluate(expr, "b") is True
+    assert evaluate(expr, "ab") is True
+    assert evaluate(expr, "ba") is True
+    assert evaluate(expr, "abba") is True
+
+    # Rejected because the bound is 4.
+    assert evaluate(expr, "ababa") is False
+
+    assert evaluate(expr, "c") is False
+    assert evaluate(expr, "abc") is False
+
+
+def test_bounded_encoding_a_or_ba_star():
+    ast = parse_regex("(a|ba)*")
+    nfa = build_nfa(ast)
+    expr = compile_nfa_bounded(nfa, bound=5)
+
+    assert evaluate(expr, "") is True
+    assert evaluate(expr, "a") is True
+    assert evaluate(expr, "ba") is True
+    assert evaluate(expr, "aba") is True
+    assert evaluate(expr, "baa") is True
+    assert evaluate(expr, "ababa") is True
+
+    # Rejected because the bound is 5.
+    assert evaluate(expr, "ababaa") is False
+
+    assert evaluate(expr, "b") is False
+    assert evaluate(expr, "bb") is False
+    assert evaluate(expr, "abb") is False
+
+
 def test_bounded_encoding_character_class_range():
     ast = parse_regex("[a-c]*")
     nfa = build_nfa(ast)
@@ -747,6 +786,8 @@ def run_tests():
     test_nfa_accepts_escaped_closing_bracket_inside_character_class()
     test_bounded_encoding_a_star()
     test_bounded_encoding_ab_star()
+    test_bounded_encoding_union_star()
+    test_bounded_encoding_a_or_ba_star()
     test_bounded_encoding_character_class_range()
     test_bounded_encoding_plus_operator()
     test_bounded_encoding_optional_operator()

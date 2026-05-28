@@ -11,6 +11,17 @@ class NFAFragment:
 
 
 class NFABuilder:
+    """Build NFAs from regex ASTs using Thompson-style construction.
+
+    Each regex node is compiled into an NFA fragment with one start state and
+    one accepting state. Larger expressions are built by connecting these
+    fragments with epsilon transitions.
+
+    This builder intentionally constructs an NFA directly from the AST. Cleanup
+    passes such as duplicate-transition elimination or unreachable-state pruning
+    can be applied separately with the NFA optimization utilities.
+    """
+
     def __init__(self):
         self.next_state: State = 0
         self.nfa = NFA(start=0, accepts=set())
@@ -99,6 +110,12 @@ class NFABuilder:
 
 
 def build_nfa(expr: Regex) -> NFA:
-    """Build an NFA from a regex AST."""
+    """Build an NFA from a regex AST.
+
+    The construction is Thompson-style and may produce epsilon transitions,
+    duplicate transitions, or unreachable states. This is acceptable for the
+    core construction; optional cleanup can be performed separately with
+    optimize_nfa().
+    """
     builder = NFABuilder()
     return builder.build(expr)

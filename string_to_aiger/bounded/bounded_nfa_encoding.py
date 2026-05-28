@@ -39,7 +39,12 @@ def and_two(left: Expr, right: Expr) -> Expr:
 
 
 def epsilon_reachability(nfa: NFA) -> dict[State, set[State]]:
-    """Compute epsilon-reachable states for every state."""
+    """Compute epsilon-reachable states for every state.
+
+    The result maps each state to all states reachable from it by taking only
+    epsilon transitions. This is precomputed once and then reused during the
+    bounded unrolling.
+    """
     result: dict[State, set[State]] = {}
 
     for start in nfa.states():
@@ -64,7 +69,12 @@ def epsilon_close_exprs(
     exprs: dict[State, Expr],
     epsilon_reachable: dict[State, set[State]],
 ) -> dict[State, Expr]:
-    """Lift epsilon closure to symbolic expressions."""
+    """Lift epsilon closure to symbolic reachability expressions.
+
+    If a target state is epsilon-reachable from several source states, then the
+    symbolic condition for reaching the target is the disjunction of the
+    conditions for reaching those sources.
+    """
     closed: dict[State, Expr] = {}
 
     for target in states:
@@ -83,6 +93,17 @@ def compile_nfa_bounded(nfa: NFA, bound: int) -> Expr:
     """Compile an NFA into a bounded combinational logical expression.
 
     The resulting expression accepts words of length at most `bound`.
+
+    Strategy:
+    - compute symbolic reachability expressions for every NFA state
+    - start from the epsilon-closure of the initial state
+    - for each input position, symbolically advance one transition step
+    - after each step, apply epsilon closure again
+    - at every length 0..bound, record whether an accepting state is reachable
+
+    This unrolls potentially looping NFA behavior into a finite boolean formula.
+    For unbounded languages such as `a*`, the encoding is intentionally complete
+    only up to the selected bound.
     """
     if bound < 0:
         raise ValueError("Bound must be non-negative")
@@ -95,6 +116,7 @@ def compile_nfa_bounded(nfa: NFA, bound: int) -> Expr:
         for state in states
     }
 
+    # The empty word may already reach additional states through epsilon edges.
     current = epsilon_close_exprs(states, current, epsilon_reachable)
 
     accept_conditions: list[Expr] = []
@@ -113,6 +135,8 @@ def compile_nfa_bounded(nfa: NFA, bound: int) -> Expr:
         if position == bound:
             break
 
+        # moved[target] describes the condition under which `target` is reached
+        # after consuming the symbol at the current input position.
         moved: dict[State, Expr] = {
             state: BoolConst(False)
             for state in states
@@ -123,11 +147,15 @@ def compile_nfa_bounded(nfa: NFA, bound: int) -> Expr:
                 if symbol is None:
                     continue
 
+                # A symbol transition succeeds iff the source state is currently
+                # reachable and the candidate word has the required character at
+                # this position.
                 transition_condition = and_two(
                     current[source],
                     CharAtIs(position, symbol),
                 )
 
+                # Several paths may reach the same target state.
                 moved[target] = or_two(moved[target], transition_condition)
 
         current = epsilon_close_exprs(states, moved, epsilon_reachable)
