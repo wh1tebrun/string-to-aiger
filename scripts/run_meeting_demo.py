@@ -197,18 +197,18 @@ def run_demo_command(entry: DemoCommand, verbose: bool) -> DemoResult:
 
 def write_report(results: list[DemoResult]) -> None:
     with open(REPORT_PATH, "w", encoding="utf-8") as f:
-        f.write("ERKE Meeting demo report\n\n")
+        f.write("# Meeting demo report\n\n")
 
         f.write("This report summarizes the Milestone 1 and Milestone 2 meeting demo.\n\n")
 
         f.write("The focus is:\n\n")
-        f.write("EGEtext\n")
+        f.write("```text\n")
         f.write("Milestone 1: fixed-string disjunctions -> AIGER\n")
         f.write("Milestone 2: regex / Kleene star -> AST -> NFA -> AIGER\n")
-        f.write("EGE\n\n")
+        f.write("```\n\n")
 
         f.write("---\n\n")
-        f.write("ERKEERKE Summary\n\n")
+        f.write("## Summary\n\n")
 
         total = len(results)
         passed = sum(1 for result in results if result.returncode == 0)
@@ -221,7 +221,7 @@ def write_report(results: list[DemoResult]) -> None:
         f.write(f"| Failed | {failed} |\n\n")
 
         f.write("---\n\n")
-        f.write("ERKEERKE Commands\n\n")
+        f.write("## Commands\n\n")
 
         f.write("| Status | Demo step | Command | Log |\n")
         f.write("|---|---|---|---|\n")
@@ -237,7 +237,7 @@ def write_report(results: list[DemoResult]) -> None:
             )
 
         f.write("\n---\n\n")
-        f.write("ERKEERKE Generated AIGER files\n\n")
+        f.write("## Generated AIGER files\n\n")
 
         generated_any = any(result.generated_files for result in results)
 
@@ -255,18 +255,18 @@ def write_report(results: list[DemoResult]) -> None:
             f.write("\n")
 
         f.write("---\n\n")
-        f.write("ERKEERKE How to present this report\n\n")
+        f.write("## How to present this report\n\n")
         f.write("Suggested meeting flow:\n\n")
-        f.write("EGEtext\n")
+        f.write("```text\n")
         f.write("1. Open docs/meeting_demo.md for the explanation.\n")
         f.write("2. Run python scripts/run_meeting_demo.py.\n")
         f.write("3. Open outputs/meeting_demo_report.md.\n")
         f.write("4. Show the PASS summary and generated AIGER headers.\n")
         f.write("5. Open one generated .aag file if the professor wants to inspect the raw output.\n")
-        f.write("EGE\n\n")
+        f.write("```\n\n")
 
         f.write("---\n\n")
-        f.write("ERKEERKE Notes\n\n")
+        f.write("## Notes\n\n")
         f.write("- Full command outputs are stored in `outputs/meeting_demo_logs/`.\n")
         f.write("- The terminal output is intentionally compact to avoid scrolling during the meeting.\n")
         f.write("- The detailed explanation is in `docs/meeting_demo.md`.\n")
