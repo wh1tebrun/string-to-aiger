@@ -2,10 +2,20 @@ from collections.abc import Mapping
 from string_to_aiger.netlist.netlist import Input, Const, AndGate, OrGate, Node
 
 
-# This class serializes a boolean netlist into ASCII AIGER format by assigning
-# literals to inputs and logic gates and recursively compiling the circuit graph.
-
 class AigerWriter:
+    """Serialize a boolean netlist into ASCII AIGER.
+
+    AIGER literals use the standard convention:
+
+    - literal 0 is the constant false
+    - literal 1 is the constant true
+    - an even literal 2 * v represents variable v
+    - the corresponding odd literal 2 * v + 1 represents its negation
+
+    Variable index 0 is reserved for constants, so generated variable indices
+    start at 1.
+    """
+
     def __init__(self, nodes: Mapping[int, Node], output_node: int):
         self.nodes = nodes
         self.output_node = output_node
@@ -16,6 +26,7 @@ class AigerWriter:
         self.inputs: list[tuple[int, str]] = []
         self.ands: list[tuple[int, int, int]] = []
 
+        # AIGER variable index 0 is reserved for constants.
         self.next_var = 1
 
     def new_literal(self) -> int:
@@ -42,7 +53,7 @@ class AigerWriter:
             return lit
 
         if isinstance(node, Const):
-            # AIGER constant false = 0, true = 1
+            # AIGER constant convention: false = 0, true = 1.
             return 1 if node.value else 0
 
         if isinstance(node, AndGate):
@@ -55,7 +66,10 @@ class AigerWriter:
             return out_lit
 
         if isinstance(node, OrGate):
-            # a OR b = ~(~a AND ~b)
+            # AIGER only has AND gates and inversion.
+            # Encode a OR b using De Morgan:
+            #
+            #   a OR b = NOT((NOT a) AND (NOT b))
             left_lit = self.compile_node(node.left)
             right_lit = self.compile_node(node.right)
 
@@ -79,7 +93,6 @@ class AigerWriter:
         num_outputs = 1
         num_ands = len(self.ands)
 
-        # TODO: validate AIGER limits for large instances
         max_variable_index = self.next_var - 1
 
         lines = [
@@ -87,18 +100,14 @@ class AigerWriter:
             f"{num_latches} {num_outputs} {num_ands}"
         ]
 
-        # input literals
         for lit, _name in self.inputs:
             lines.append(str(lit))
 
-        # outputs
         lines.append(str(output_lit))
 
-        # and gates
         for lhs, rhs0, rhs1 in self.ands:
             lines.append(f"{lhs} {rhs0} {rhs1}")
 
-        # symbolic names
         for i, (_lit, name) in enumerate(self.inputs):
             lines.append(f"i{i} {name}")
 

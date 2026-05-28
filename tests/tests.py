@@ -8,6 +8,7 @@ from string_to_aiger.fixed.parser import parse  # noqa: E402
 from string_to_aiger.fixed.model import build_model  # noqa: E402
 from string_to_aiger.fixed.matcher import matches_or  # noqa: E402
 from string_to_aiger.fixed.compiler import compile_or, compile_exact_string  # noqa: E402
+from string_to_aiger.logic.circuit import CharAtIs  # noqa: E402
 from string_to_aiger.logic.evaluator import evaluate  # noqa: E402
 from string_to_aiger.netlist.netlist_builder import NetlistBuilder  # noqa: E402
 from string_to_aiger.aiger.aiger import compile_expr_to_aiger  # noqa: E402
@@ -62,6 +63,12 @@ def test_compile_exact_string():
     assert evaluate(compiled, "") is False
 
 
+def test_evaluate_char_at_out_of_bounds():
+    expr = CharAtIs(5, "x")
+
+    assert evaluate(expr, "ab") is False
+
+
 def test_compile_or_and_evaluation():
     strings = parse("abba | abb")
     model = build_model(strings)
@@ -110,14 +117,13 @@ def run_tests():
     test_parser_invalid_empty_alternative()
     test_model_and_matcher()
     test_compile_exact_string()
+    test_evaluate_char_at_out_of_bounds()
     test_compile_or_and_evaluation()
     test_netlist_building()
     test_aiger_output()
+
     print("All tests passed.")
 
 
 if __name__ == "__main__":
     run_tests()
-
-
-# TODO: add tests for future regex operators
