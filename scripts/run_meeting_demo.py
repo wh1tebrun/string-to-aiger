@@ -37,6 +37,26 @@ MEETING_COMMANDS = [
         command=[sys.executable, "tests/tests_regex.py"],
     ),
     DemoCommand(
+        title="Milestone 2 tests: sequential backend",
+        command=[sys.executable, "tests/tests_sequential.py"],
+    ),
+    DemoCommand(
+        title="Milestone 3 tests: bounded intersection",
+        command=[sys.executable, "tests/tests_intersection.py"],
+    ),
+    DemoCommand(
+        title="Milestone 3 tests: sequential intersection",
+        command=[sys.executable, "tests/tests_sequential_intersection.py"],
+    ),
+    DemoCommand(
+        title="Milestone 3 tests: product automaton construction",
+        command=[sys.executable, "tests/tests_nfa_product.py"],
+    ),
+    DemoCommand(
+        title="Milestone 3 tests: product backend compilation",
+        command=[sys.executable, "tests/tests_product_backend.py"],
+    ),
+    DemoCommand(
         title="Regex parser demo: expression to regex AST",
         command=[sys.executable, "demos/regex_parser_demo.py"],
     ),
@@ -51,6 +71,14 @@ MEETING_COMMANDS = [
     DemoCommand(
         title="Bounded AIGER demo: regex to bounded ASCII AIGER",
         command=[sys.executable, "demos/regex_to_aiger_demo.py"],
+    ),
+    DemoCommand(
+        title="Milestone 3 demo: bounded regex intersection",
+        command=[sys.executable, "demos/regex_intersection_demo.py"],
+    ),
+    DemoCommand(
+        title="Milestone 3 demo: sequential regex intersection",
+        command=[sys.executable, "demos/sequential_intersection_demo.py"],
     ),
     DemoCommand(
         title="CLI bounded example: a* with bound 3",
@@ -100,6 +128,98 @@ MEETING_COMMANDS = [
             os.path.join("outputs", "meeting_demo_abstar_bounded.aag"),
         ],
         generated_files=("outputs/meeting_demo_abstar_bounded.aag",),
+    ),
+    DemoCommand(
+        title="CLI bounded structural intersection: (a|b)*&a*",
+        command=[
+            sys.executable,
+            "-m",
+            "string_to_aiger",
+            "--pattern",
+            "(a|b)*&a*",
+            "--backend",
+            "bounded",
+            "--intersection-strategy",
+            "structural",
+            "--bound",
+            "4",
+            "--output",
+            os.path.join(
+                "outputs",
+                "meeting_demo_intersection_bounded_structural.aag",
+            ),
+        ],
+        generated_files=(
+            "outputs/meeting_demo_intersection_bounded_structural.aag",
+        ),
+    ),
+    DemoCommand(
+        title="CLI bounded product intersection: (a|b)*&a*",
+        command=[
+            sys.executable,
+            "-m",
+            "string_to_aiger",
+            "--pattern",
+            "(a|b)*&a*",
+            "--backend",
+            "bounded",
+            "--intersection-strategy",
+            "product",
+            "--bound",
+            "4",
+            "--output",
+            os.path.join(
+                "outputs",
+                "meeting_demo_intersection_bounded_product.aag",
+            ),
+        ],
+        generated_files=(
+            "outputs/meeting_demo_intersection_bounded_product.aag",
+        ),
+    ),
+    DemoCommand(
+        title="CLI sequential structural intersection: (a|b)*&a*",
+        command=[
+            sys.executable,
+            "-m",
+            "string_to_aiger",
+            "--pattern",
+            "(a|b)*&a*",
+            "--backend",
+            "sequential",
+            "--intersection-strategy",
+            "structural",
+            "--output",
+            os.path.join(
+                "outputs",
+                "meeting_demo_intersection_sequential_structural.aag",
+            ),
+        ],
+        generated_files=(
+            "outputs/meeting_demo_intersection_sequential_structural.aag",
+        ),
+    ),
+    DemoCommand(
+        title="CLI sequential product intersection: (a|b)*&a*",
+        command=[
+            sys.executable,
+            "-m",
+            "string_to_aiger",
+            "--pattern",
+            "(a|b)*&a*",
+            "--backend",
+            "sequential",
+            "--intersection-strategy",
+            "product",
+            "--output",
+            os.path.join(
+                "outputs",
+                "meeting_demo_intersection_sequential_product.aag",
+            ),
+        ],
+        generated_files=(
+            "outputs/meeting_demo_intersection_sequential_product.aag",
+        ),
     ),
 ]
 
@@ -199,12 +319,16 @@ def write_report(results: list[DemoResult]) -> None:
     with open(REPORT_PATH, "w", encoding="utf-8") as f:
         f.write("# Meeting demo report\n\n")
 
-        f.write("This report summarizes the Milestone 1 and Milestone 2 meeting demo.\n\n")
+        f.write(
+            "This report summarizes the Milestone 1, Milestone 2, "
+            "and Milestone 3 meeting demo.\n\n"
+        )
 
         f.write("The focus is:\n\n")
         f.write("```text\n")
         f.write("Milestone 1: fixed-string disjunctions -> AIGER\n")
         f.write("Milestone 2: regex / Kleene star -> AST -> NFA -> AIGER\n")
+        f.write("Milestone 3: regex conjunction / intersection -> bounded or sequential AIGER\n")
         f.write("```\n\n")
 
         f.write("---\n\n")
@@ -262,7 +386,8 @@ def write_report(results: list[DemoResult]) -> None:
         f.write("2. Run python scripts/run_meeting_demo.py.\n")
         f.write("3. Open outputs/meeting_demo_report.md.\n")
         f.write("4. Show the PASS summary and generated AIGER headers.\n")
-        f.write("5. Open one generated .aag file if the professor wants to inspect the raw output.\n")
+        f.write("5. For Milestone 3, compare structural and product intersection outputs.\n")
+        f.write("6. Open one generated .aag file if the professor wants to inspect the raw output.\n")
         f.write("```\n\n")
 
         f.write("---\n\n")
@@ -270,11 +395,15 @@ def write_report(results: list[DemoResult]) -> None:
         f.write("- Full command outputs are stored in `outputs/meeting_demo_logs/`.\n")
         f.write("- The terminal output is intentionally compact to avoid scrolling during the meeting.\n")
         f.write("- The detailed explanation is in `docs/meeting_demo.md`.\n")
+        f.write("- Milestone 3 demonstrates both structural and product-based intersection compilation.\n")
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(
-        description="Run a compact meeting demo for Milestone 1 and Milestone 2.",
+        description=(
+            "Run a compact meeting demo for Milestone 1, "
+            "Milestone 2, and Milestone 3."
+        ),
     )
     parser.add_argument(
         "--verbose",
@@ -288,6 +417,11 @@ def main() -> int:
     print("=" * 80)
     print("string-to-aiger meeting demo")
     print("=" * 80)
+    print("Focus:")
+    print("- Milestone 1: fixed-string disjunctions -> AIGER")
+    print("- Milestone 2: regex / Kleene star -> AST -> NFA -> AIGER")
+    print("- Milestone 3: regex conjunction / intersection")
+    print()
     print("Running compact demo. Full logs will be written to:")
     print(relative(LOG_DIR))
     print()
