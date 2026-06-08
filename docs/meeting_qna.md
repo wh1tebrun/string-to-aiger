@@ -9,7 +9,10 @@ Milestone 1:
 fixed-string disjunctions -> AIGER
 
 Milestone 2:
-regular expressions with Kleene star -> AST -> NFA -> AIGER
+regular expressions with Kleene star -> AST -> NFA -> bounded/sequential AIGER
+
+Milestone 3:
+regular-expression conjunction / intersection -> structural and product-based AIGER
 ```
 
 The goal is to answer questions clearly without overclaiming.
@@ -39,7 +42,7 @@ AIGER is a compact and standard format for And-Inverter Graphs.
 
 It is commonly used in hardware verification and model checking contexts.
 
-By translating string constraints into AIGER, the project creates a bridge between string/regex constraints and hardware verification representations.
+By translating string and regex constraints into AIGER, the project creates a bridge between string constraints and hardware verification representations.
 ```
 
 ---
@@ -49,11 +52,29 @@ By translating string constraints into AIGER, the project creates a bridge betwe
 Answer:
 
 ```text
-The compiler currently generates a circuit whose output represents whether a candidate word satisfies the input expression.
+The compiler generates a circuit whose output represents whether a candidate word satisfies the input expression.
 
 For fixed strings, the circuit checks length and character-position constraints.
 
-For regexes, the expression is first translated into an NFA, and then the NFA is encoded either as a bounded combinational circuit or as a sequential latch-based circuit.
+For regexes, the expression is first translated into an AST and then into an NFA.
+
+The NFA is then encoded either as a bounded combinational circuit or as a sequential latch-based circuit.
+
+For intersections, the project supports both structural compilation and explicit product automata.
+```
+
+---
+
+## What is the high-level project progression?
+
+Answer:
+
+```text
+Milestone 1 establishes the fixed-string-to-AIGER pipeline.
+
+Milestone 2 generalizes this with regex ASTs, NFAs, bounded AIGER generation, and a sequential backend.
+
+Milestone 3 adds conjunction / intersection with the & operator, using both structural compilation and explicit product automata.
 ```
 
 ---
@@ -122,6 +143,18 @@ python tests/tests.py
 
 ---
 
+## Is anything in Milestone 1 hardcoded?
+
+Answer:
+
+```text
+The demo file path in main.py is fixed because it is a simple demo entry point.
+
+The actual parser, matcher model, compiler, evaluator, netlist builder, and AIGER writer are general for fixed-string disjunctions and are not hardcoded to one example.
+```
+
+---
+
 ## Milestone 2 questions
 
 ## How does the Kleene-star implementation work?
@@ -159,7 +192,7 @@ The NFA also gives a clear automata-theoretic layer between parsing and AIGER ge
 Answer:
 
 ```text
-DFA construction is not necessary for the first two milestones.
+DFA construction is not necessary for the first three milestones.
 
 The current goal is to support regex-to-automaton translation and AIGER generation.
 
@@ -179,7 +212,7 @@ No, full DFA minimization is not implemented.
 
 The project includes basic NFA cleanup utilities, but not full DFA construction or minimization.
 
-I treat DFA minimization as future work because it is an optimization step, not required for the first two milestones.
+I treat DFA minimization as future work because it is an optimization step, not required for the first three milestones.
 ```
 
 ---
@@ -198,7 +231,7 @@ a*
 (a|b)*
 (a|ba)*
 
-The parser has also been extended with operators such as +, ?, bounded repetitions, character classes, character ranges, and escaping.
+The parser has also been extended with operators such as +, ?, bounded repetitions, character classes, character ranges, escaping, and intersection with &.
 
 The supported grammar is documented in docs/regex_grammar.md.
 ```
@@ -305,6 +338,213 @@ The accept output is true iff end is true and an accepting NFA state is active.
 
 ---
 
+## Milestone 3 questions
+
+## What does Milestone 3 add?
+
+Answer:
+
+```text
+Milestone 3 adds conjunction / intersection support with the & operator.
+
+An expression such as:
+
+(a|b)*&a*
+
+means that the candidate word must satisfy both regular expressions at the same time.
+```
+
+---
+
+## What does (a|b)*&a* mean?
+
+Answer:
+
+```text
+(a|b)* accepts all words over the alphabet {a, b}.
+
+a* accepts only words consisting entirely of a.
+
+Their intersection therefore accepts only words consisting entirely of a.
+```
+
+---
+
+## How is & represented internally?
+
+Answer:
+
+```text
+The regex AST contains an Intersect node.
+
+So A & B is represented as:
+
+Intersect(A, B)
+
+This keeps conjunction as part of the structured regex representation instead of treating it as a special string-level case.
+```
+
+---
+
+## What is the precedence of &?
+
+Answer:
+
+```text
+The precedence order is:
+
+1. repetition operators such as *, +, ?, {n}, {m,n}, {m,}
+2. concatenation
+3. &
+4. |
+
+For example:
+
+a|b&c
+
+is parsed as:
+
+a | (b & c)
+```
+
+---
+
+## How is bounded structural intersection compiled?
+
+Answer:
+
+```text
+For the bounded backend, the structural strategy compiles:
+
+A & B
+
+as:
+
+compile(A) AND compile(B)
+
+Both sides are compiled independently with the same bound, and the final expression requires both sides to accept the same candidate word.
+```
+
+---
+
+## How is sequential structural intersection compiled?
+
+Answer:
+
+```text
+For the sequential backend, both subcircuits run in parallel on the same input stream.
+
+Their latches are renamed to avoid name collisions.
+
+The final accept output is:
+
+accept = accept_left AND accept_right
+
+This accepts exactly when both subcircuits accept the input word.
+```
+
+---
+
+## What is the product automaton strategy?
+
+Answer:
+
+```text
+The product automaton strategy is the explicit automata-theoretic construction for intersection.
+
+The idea is:
+
+A & B
+-> NFA(A)
+-> NFA(B)
+-> product NFA(A, B)
+-> bounded or sequential AIGER
+
+Product states are pairs:
+
+(q_left, q_right)
+
+A product state is accepting iff both component states are accepting.
+```
+
+---
+
+## Why do you have two intersection strategies?
+
+Answer:
+
+```text
+Both strategies are correct.
+
+The structural strategy is simple and practical.
+
+The product automaton strategy is theoretically explicit and useful for cross-checking behavior.
+
+Having both strategies makes the implementation easier to defend because they provide independent ways to implement intersection.
+```
+
+---
+
+## Which strategy is used in practice?
+
+Answer:
+
+```text
+The CLI allows selecting the strategy explicitly.
+
+The structural strategy is useful because it is simple and direct.
+
+The product strategy is useful because it follows the standard automata-theoretic construction.
+
+Both are tested on the important Milestone 3 examples.
+```
+
+---
+
+## Is product automaton construction hardcoded for the examples?
+
+Answer:
+
+```text
+No.
+
+The product construction works over NFAs in general.
+
+It constructs product states from pairs of NFA states, handles accepting states through pairwise acceptance, and handles transitions according to the product construction.
+
+The examples such as (a|b)*&a* are only test cases.
+```
+
+---
+
+## What Milestone 3 examples are tested?
+
+Answer:
+
+```text
+Important examples include:
+
+(a|b)*&a*
+(ab)*&(a|b)*
+a*&b*
+
+These are tested across bounded structural intersection, sequential structural intersection, direct product automata, and product-based backends.
+```
+
+---
+
+## Is Milestone 3 completed?
+
+Answer:
+
+```text
+The implementation for Milestone 3 is implemented and tested.
+
+I would present it as completed or nearly completed, while still asking for feedback on whether the chosen strategies and explanations match the expected direction.
+```
+
+---
+
 ## Validation questions
 
 ## How do you know the parser is correct?
@@ -312,7 +552,7 @@ The accept output is true iff end is true and an accepting NFA state is active.
 Answer:
 
 ```text
-The parser is tested on representative expressions for characters, concatenation, union, Kleene star, bounded repetitions, character classes, escaping, and intersections.
+The parser is tested on representative expressions for characters, concatenation, union, intersection, Kleene star, bounded repetitions, character classes, and escaping.
 
 The supported grammar is also documented explicitly in docs/regex_grammar.md.
 ```
@@ -333,14 +573,34 @@ This validates the automaton behavior before AIGER generation.
 
 ---
 
+## How do you know intersection is correct?
+
+Answer:
+
+```text
+Intersection is tested in several independent ways.
+
+The structural bounded backend is tested directly.
+
+The structural sequential backend is tested with simulation.
+
+The explicit product NFA is tested directly with the NFA evaluator.
+
+The product-based bounded and sequential backends are also tested.
+
+This gives several layers of evidence that the intersection behavior is correct.
+```
+
+---
+
 ## How do you know the generated AIGER is correct?
 
 Answer:
 
 ```text
-For the first two milestones, the project validates the pipeline at several levels.
+For the first three milestones, the project validates the pipeline at several levels.
 
-It tests the parser, NFA evaluator, bounded logical expression evaluator, sequential simulator, and generated AIGER structure.
+It tests the parser, NFA evaluator, bounded logical expression evaluator, sequential simulator, structural intersection behavior, product automata, product backend compilation, and generated AIGER structure.
 
 The project also includes an internal structural AIGER validator that checks the generated ASCII AIGER format.
 ```
@@ -352,7 +612,7 @@ The project also includes an internal structural AIGER validator that checks the
 Answer:
 
 ```text
-External model-checker based semantic validation is not part of the first two milestones.
+External model-checker based semantic validation is not part of the first three milestones.
 
 The project currently has internal structural AIGER validation and optional support for configuring an external AIGER validator.
 
@@ -368,9 +628,9 @@ Answer:
 ```text
 No.
 
-The implementation uses tests, direct NFA evaluation, bounded checks, and structural validation.
+The implementation uses tests, direct NFA evaluation, bounded checks, sequential simulation, and product-backend comparisons.
 
-Unbounded language-equivalence checking is not part of the first two milestones and is documented as future work.
+Unbounded language-equivalence checking is not part of the first three milestones and is documented as future work.
 ```
 
 ---
@@ -412,7 +672,7 @@ Answer:
 ```text
 The meeting demo runner makes the demo reproducible.
 
-It runs the key Milestone 1 and Milestone 2 tests and demos, writes compact logs, and generates a short report.
+It runs the key Milestone 1, Milestone 2, and Milestone 3 tests and demos, writes compact logs, and generates a short report.
 
 This avoids relying on manual terminal scrolling during the meeting.
 ```
@@ -425,6 +685,8 @@ Answer:
 
 ```text
 The report lists the demo steps, whether they passed, the commands that were run, the log files, and the generated AIGER files with their headers.
+
+For Milestone 3, it also includes structural and product-based intersection examples.
 ```
 
 ---
@@ -442,7 +704,9 @@ The sequential backend uses a simple stream-based input protocol.
 
 The parser supports a useful regex fragment, but not full PCRE/Python-style regex syntax.
 
-External semantic checking and unbounded equivalence checking are treated as future work.
+The project does not currently provide unbounded equivalence proofs.
+
+External semantic checking with model checkers is treated as future work.
 ```
 
 ---
@@ -460,68 +724,49 @@ DFA construction and minimization
 richer regex syntax
 larger or randomized benchmark suites
 deeper integration with SAT or hardware model checking workflows
+AIGER optimization
 ```
 
 ---
 
-## If asked about Milestone 3 or later work
-
-Answer carefully:
-
-```text
-I have also started exploring later extensions in the repository, but for this meeting I wanted to focus on the first two milestones and make sure their scope and implementation are correct before presenting the later parts in detail.
-```
-
-This is useful because it does not hide that the repository may contain later work, but it keeps the meeting focused.
-
----
-
-## If asked why the repository has more than Milestone 1 and 2
-
-Answer:
-
-```text
-I continued implementing later extensions while preparing the first two milestones.
-
-However, the demo is intentionally focused on Milestone 1 and Milestone 2, because those are the parts I wanted to clarify and show first.
-```
-
----
-
-## Short answers for very direct questions
-
-## Is full regex syntax required for Milestone 2?
+## Is full regex syntax required for the current milestones?
 
 Answer:
 
 ```text
 My understanding is no.
 
-Milestone 2 focuses on a regex fragment with Kleene star, not a full regex engine.
+The current milestones focus on a useful regular-expression fragment, not a full regex engine.
+
+Unsupported features are documented as limitations and future work.
 ```
 
 ---
 
-## Is DFA minimization required for Milestone 2?
+## Is DFA minimization required?
 
 Answer:
 
 ```text
 My understanding is no.
 
-It would be an optimization/future-work item.
+It would be an optimization and future-work item.
+
+The current implementation uses NFAs directly because they are natural for regex construction.
 ```
 
 ---
 
-## Is external model checking required for Milestone 2?
+## Is external model checking required?
 
 Answer:
 
 ```text
-My understanding is no.
+My understanding is no for the first three milestones.
 
-For the first two milestones, internal tests and structural validation are sufficient, while external semantic checking is a later extension.
+For now, internal tests, direct automaton evaluation, bounded checks, sequential simulation, structural validation, and product-backend comparisons provide the main validation evidence.
+
+External semantic checking can be integrated later.
 ```
 
 ---
@@ -534,6 +779,98 @@ Answer:
 My understanding is no.
 
 The current implementation focuses on compilation and bounded/direct validation.
+
+Unbounded equivalence checking is treated as future work.
+```
+
+---
+
+## If asked about Milestone 4 or later work
+
+Answer carefully:
+
+```text
+I have started evaluation infrastructure as a later step, but for this meeting I would like to focus mainly on the first three milestones and confirm that the compilation approach is correct.
+
+After that, I can continue with deeper evaluation, benchmarking, and validation.
+```
+
+---
+
+## If asked why the repository has more than Milestone 1, 2, and 3
+
+Answer:
+
+```text
+I continued implementing later extensions while preparing the milestone pipeline.
+
+However, the meeting demo is intentionally focused on Milestone 1, Milestone 2, and Milestone 3, because these are the parts I want to present and discuss first.
+```
+
+---
+
+## Short answers for very direct questions
+
+## Is full regex syntax required?
+
+Answer:
+
+```text
+My understanding is no.
+
+The goal is to support the project-specific regex fragment needed for the AIGER compilation pipeline.
+```
+
+---
+
+## Is DFA minimization implemented?
+
+Answer:
+
+```text
+No.
+
+The project uses NFAs directly and treats DFA construction/minimization as future work.
+```
+
+---
+
+## Is external model checking implemented?
+
+Answer:
+
+```text
+Not as a required semantic validation step.
+
+The project has internal structural validation and optional external validator support, but deeper model-checker integration is future work.
+```
+
+---
+
+## Is product automaton construction implemented?
+
+Answer:
+
+```text
+Yes.
+
+Product automata are implemented for regex intersection and are used as an explicit automata-theoretic strategy for Milestone 3.
+```
+
+---
+
+## Are structural and product intersection both correct?
+
+Answer:
+
+```text
+Yes.
+
+The structural strategy combines compiled accept conditions with AND.
+
+The product strategy builds an explicit product NFA.
+
+Both express language intersection, and the tests check their behavior on the main Milestone 3 examples.
 ```
 
 ---
@@ -548,6 +885,8 @@ My current goal is to keep the implementation milestone-oriented.
 The first milestone establishes the fixed-string-to-AIGER pipeline.
 
 The second milestone generalizes this using regex ASTs and NFAs.
+
+The third milestone adds conjunction / intersection with &, using both structural compilation and explicit product automata.
 
 The current implementation is runnable, tested, and documented, while heavier features such as full regex syntax, DFA minimization, external semantic validation, and unbounded equivalence checking are treated as extensions.
 ```
