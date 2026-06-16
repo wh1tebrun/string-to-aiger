@@ -21,6 +21,7 @@ TEST_COMMANDS = [
     ["tests/tests_aiger_validator.py"],
     ["tests/tests_aiger_pipeline.py"],
     ["tests/tests_external_aiger_validator.py"],
+    ["tests/tests_aigsim_bounded.py"],
 ]
 
 

@@ -10,6 +10,9 @@ dist/
 
 outputs/*.aag
 
+# Generated aigsim stimulus files
+outputs/*.stim
+
 # Generated meeting demo outputs
 outputs/meeting_demo_logs/
 outputs/meeting_demo_report.md
