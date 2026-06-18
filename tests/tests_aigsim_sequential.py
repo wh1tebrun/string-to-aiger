@@ -232,12 +232,64 @@ def test_aigsim_sequential_intersection_empty_except_epsilon() -> None:
     )
 
 
+def test_aigsim_sequential_optional() -> None:
+    run_aigsim_case(
+        pattern="a?",
+        candidates=["", "a", "aa", "b", "ab", "ba"],
+    )
+
+
+def test_aigsim_sequential_plus() -> None:
+    run_aigsim_case(
+        pattern="a+",
+        candidates=["", "a", "aa", "aaa", "b", "ab", "ba"],
+    )
+
+
+def test_aigsim_sequential_exact_repetition() -> None:
+    run_aigsim_case(
+        pattern="a{2}",
+        candidates=["", "a", "aa", "aaa", "b", "ab", "ba", "aab"],
+    )
+
+
+def test_aigsim_sequential_character_class_star() -> None:
+    run_aigsim_case(
+        pattern="[ab]*",
+        candidates=["", "a", "b", "ab", "ba", "aaa", "bbb", "c", "ac", "ca"],
+    )
+
+
+def test_aigsim_sequential_mixed_union_concat_star() -> None:
+    run_aigsim_case(
+        pattern="(a|ba)*",
+        candidates=[
+            "",
+            "a",
+            "ba",
+            "aa",
+            "aba",
+            "baa",
+            "baba",
+            "b",
+            "ab",
+            "bab",
+            "bb",
+        ],
+    )
+
+
 def run_tests() -> None:
     test_aigsim_sequential_astar()
     test_aigsim_sequential_abstar()
     test_aigsim_sequential_union_star()
     test_aigsim_sequential_intersection_astar()
     test_aigsim_sequential_intersection_empty_except_epsilon()
+    test_aigsim_sequential_optional()
+    test_aigsim_sequential_plus()
+    test_aigsim_sequential_exact_repetition()
+    test_aigsim_sequential_character_class_star()
+    test_aigsim_sequential_mixed_union_concat_star()
     print("All aigsim sequential semantic tests passed.")
 
 
