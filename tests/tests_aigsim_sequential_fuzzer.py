@@ -1,5 +1,4 @@
 import itertools
-import os
 import random
 import subprocess
 from pathlib import Path
@@ -11,29 +10,14 @@ from string_to_aiger.sequential.sequential_aiger_writer import SequentialAigerWr
 from string_to_aiger.sequential.sequential_regex_compiler import (
     compile_regex_to_sequential,
 )
+from aigsim_test_utils import require_aigsim
 
-
-AIGSIM_ENV_VAR = "AIGSIM"
 
 ALPHABET = ["a", "b"]
 FUZZ_SEED = 54321
 FUZZ_PATTERN_COUNT = 25
 MAX_REGEX_DEPTH = 3
 MAX_WORD_LENGTH = 3
-
-
-def require_aigsim() -> str:
-    """Return the configured aigsim path or skip the test."""
-    aigsim = os.environ.get(AIGSIM_ENV_VAR)
-
-    if not aigsim:
-        print("SKIPPED: AIGSIM environment variable is not set.")
-        raise SystemExit(0)
-
-    if not Path(aigsim).exists():
-        raise AssertionError(f"AIGSIM does not exist: {aigsim}")
-
-    return aigsim
 
 
 def parse_aiger_input_names(aag_text: str) -> list[str]:

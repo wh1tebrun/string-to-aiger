@@ -1,5 +1,4 @@
 import itertools
-import os
 import random
 import re
 import subprocess
@@ -11,34 +10,13 @@ from string_to_aiger.regex.regex_ast import Intersect, Regex
 from string_to_aiger.regex.regex_parser import parse_regex
 from string_to_aiger.regex.regex_to_aiger import compile_regex_to_aiger
 from string_to_aiger.regex.regex_to_product_nfa import build_product_aware_nfa
-
-
-AIGSIM_ENV_VAR = "AIGSIM"
+from aigsim_test_utils import require_aigsim
 
 ALPHABET = ["a", "b"]
 BOUND = 4
 FUZZ_SEED = 12345
 FUZZ_PATTERN_COUNT = 40
 MAX_REGEX_DEPTH = 3
-
-
-def require_aigsim() -> str:
-    """Return the configured aigsim path or skip the test.
-
-    Example:
-
-        export AIGSIM=/home/egetekin/tools/aiger/aigsim
-    """
-    aigsim = os.environ.get(AIGSIM_ENV_VAR)
-
-    if not aigsim:
-        print("SKIPPED: AIGSIM environment variable is not set.")
-        raise SystemExit(0)
-
-    if not Path(aigsim).exists():
-        raise AssertionError(f"AIGSIM does not exist: {aigsim}")
-
-    return aigsim
 
 
 def parse_aiger_input_names(aag_text: str) -> list[str]:

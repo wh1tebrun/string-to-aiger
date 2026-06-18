@@ -1,4 +1,3 @@
-import os
 import re
 import subprocess
 from pathlib import Path
@@ -15,28 +14,7 @@ from string_to_aiger.sequential.product_sequential_compiler import (
     compile_regex_to_sequential_product,
 )
 from string_to_aiger.sequential.sequential_aiger_writer import SequentialAigerWriter
-
-
-AIGSIM_ENV_VAR = "AIGSIM"
-
-
-def require_aigsim() -> str:
-    """Return the configured aigsim path or skip the test.
-
-    Example:
-
-        export AIGSIM=/home/egetekin/tools/aiger/aigsim
-    """
-    aigsim = os.environ.get(AIGSIM_ENV_VAR)
-
-    if not aigsim:
-        print("SKIPPED: AIGSIM environment variable is not set.")
-        raise SystemExit(0)
-
-    if not Path(aigsim).exists():
-        raise AssertionError(f"AIGSIM does not exist: {aigsim}")
-
-    return aigsim
+from aigsim_test_utils import require_aigsim
 
 
 def safe_file_stem(pattern: str) -> str:

@@ -1,4 +1,3 @@
-import os
 import re
 import subprocess
 from pathlib import Path
@@ -8,30 +7,7 @@ from string_to_aiger.regex.regex_parser import parse_regex
 from string_to_aiger.nfa.nfa_builder import build_nfa
 from string_to_aiger.nfa.nfa_evaluator import accepts
 from string_to_aiger.regex.regex_to_aiger import compile_regex_to_aiger
-
-
-AIGSIM_ENV_VAR = "AIGSIM"
-
-
-def require_aigsim() -> str:
-    """Return the configured aigsim path or skip the test.
-
-    This test is optional because aigsim is an external tool.
-
-    Example WSL setup:
-
-        export AIGSIM=/home/egetekin/tools/aiger/aigsim
-    """
-    aigsim = os.environ.get(AIGSIM_ENV_VAR)
-
-    if not aigsim:
-        print("SKIPPED: AIGSIM environment variable is not set.")
-        raise SystemExit(0)
-
-    if not Path(aigsim).exists():
-        raise AssertionError(f"AIGSIM does not exist: {aigsim}")
-
-    return aigsim
+from aigsim_test_utils import require_aigsim
 
 
 def parse_aiger_input_names(aag_text: str) -> list[str]:
@@ -89,7 +65,16 @@ def encode_candidate(candidate: str, input_names: list[str]) -> str:
 
 
 def parse_aigsim_outputs(stdout: str) -> list[int]:
-    """Extract one output bit per stimulus vector from aigsim output."""
+    """Parse combinational aigsim output lines.
+
+    For ordinary combinational circuits, aigsim prints:
+
+        input_vector output
+
+    For constant or zero-input circuits, aigsim may print only:
+
+        output
+    """
     outputs: list[int] = []
 
     for line in stdout.splitlines():
@@ -103,13 +88,16 @@ def parse_aigsim_outputs(stdout: str) -> list[int]:
 
         parts = line.split()
 
-        if len(parts) != 2:
+        if len(parts) == 1 and parts[0] in {"0", "1"}:
+            outputs.append(int(parts[0]))
             continue
 
-        vector, output = parts
+        if len(parts) == 2 and parts[1] in {"0", "1"}:
+            outputs.append(int(parts[1]))
+            continue
 
-        if set(vector) <= {"0", "1"} and output in {"0", "1"}:
-            outputs.append(int(output))
+    if not outputs:
+        raise AssertionError(f"Could not parse aigsim output:\n{stdout}")
 
     return outputs
 
