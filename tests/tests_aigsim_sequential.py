@@ -279,6 +279,76 @@ def test_aigsim_sequential_mixed_union_concat_star() -> None:
     )
 
 
+def test_aigsim_sequential_long_exact_repetition() -> None:
+    run_aigsim_case(
+        pattern="a{5}",
+        candidates=[
+            "",
+            "a",
+            "aaaa",
+            "aaaaa",
+            "aaaaaa",
+            "aaaab",
+            "baaaa",
+        ],
+    )
+
+
+def test_aigsim_sequential_long_abstar() -> None:
+    run_aigsim_case(
+        pattern="(ab)*",
+        candidates=[
+            "",
+            "ab",
+            "abab",
+            "ababab",
+            "abababab",
+            "a",
+            "aba",
+            "abababa",
+            "abb",
+            "ba",
+        ],
+    )
+
+
+def test_aigsim_sequential_long_intersection() -> None:
+    run_aigsim_case(
+        pattern="(a|b)*&a*",
+        candidates=[
+            "",
+            "a",
+            "aaaa",
+            "aaaaaa",
+            "b",
+            "ab",
+            "aaaab",
+            "baaaa",
+            "bbbbbb",
+        ],
+    )
+
+
+def test_aigsim_sequential_long_mixed_union_concat_star() -> None:
+    run_aigsim_case(
+        pattern="(a|ba)*",
+        candidates=[
+            "",
+            "a",
+            "ba",
+            "baba",
+            "bababa",
+            "abababa",
+            "babababa",
+            "b",
+            "ab",
+            "bab",
+            "bb",
+            "babab",
+        ],
+    )
+
+
 def run_tests() -> None:
     test_aigsim_sequential_astar()
     test_aigsim_sequential_abstar()
@@ -290,6 +360,10 @@ def run_tests() -> None:
     test_aigsim_sequential_exact_repetition()
     test_aigsim_sequential_character_class_star()
     test_aigsim_sequential_mixed_union_concat_star()
+    test_aigsim_sequential_long_exact_repetition()
+    test_aigsim_sequential_long_abstar()
+    test_aigsim_sequential_long_intersection()
+    test_aigsim_sequential_long_mixed_union_concat_star()
     print("All aigsim sequential semantic tests passed.")
 
 
