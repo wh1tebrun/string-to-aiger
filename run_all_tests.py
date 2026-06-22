@@ -27,6 +27,7 @@ TEST_COMMANDS = [
     ["tests/tests_aigsim_bounded_fuzzer.py"],
     ["tests/tests_aigsim_sequential_fuzzer.py"],
     ["tests/tests_aigsim_cross_backend.py"],
+    ["tests/tests_aigsim_negative_detection.py"],
 ]
 
 
