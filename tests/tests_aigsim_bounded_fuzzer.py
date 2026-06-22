@@ -4,19 +4,24 @@ import re
 import subprocess
 from pathlib import Path
 
-from string_to_aiger.nfa.nfa_builder import build_nfa
+from aigsim_test_utils import require_aigsim
 from string_to_aiger.nfa.nfa_evaluator import accepts
-from string_to_aiger.regex.regex_ast import Intersect, Regex
 from string_to_aiger.regex.regex_parser import parse_regex
 from string_to_aiger.regex.regex_to_aiger import compile_regex_to_aiger
 from string_to_aiger.regex.regex_to_product_nfa import build_product_aware_nfa
-from aigsim_test_utils import require_aigsim
 
-ALPHABET = ["a", "b"]
-BOUND = 4
+
+ALPHABET = ["a", "b", "c"]
+BOUNDS = [2, 4, 6]
+
 FUZZ_SEED = 12345
-FUZZ_PATTERN_COUNT = 40
+FUZZ_PATTERN_COUNT = 30
 MAX_REGEX_DEPTH = 3
+
+# Exhaustively testing all words up to length 6 over a 3-symbol alphabet would
+# be much slower. We therefore exhaustively test small words and add selected
+# longer words to exercise larger bounds and length encodings.
+EXHAUSTIVE_WORD_LENGTH = 3
 
 
 def parse_aiger_input_names(aag_text: str) -> list[str]:
@@ -59,10 +64,7 @@ def encode_candidate(candidate: str, input_names: list[str]) -> str:
             position = int(match.group(1))
             symbol = match.group(2)
 
-            bit = (
-                position < len(candidate)
-                and candidate[position] == symbol
-            )
+            bit = position < len(candidate) and candidate[position] == symbol
             bits.append("1" if bit else "0")
             continue
 
@@ -74,17 +76,13 @@ def encode_candidate(candidate: str, input_names: list[str]) -> str:
 def parse_aigsim_outputs(stdout: str) -> list[int]:
     """Parse combinational aigsim output lines.
 
-    For ordinary combinational circuits, aigsim prints:
+    Ordinary combinational circuits usually print:
 
         input_vector output
 
-    For constant or zero-input circuits, aigsim may print only:
+    Constant or zero-input circuits may print only:
 
         output
-
-    The fuzzer can generate regexes such as a&b, whose language is empty.
-    Such cases may compile to circuits without meaningful input symbols, so
-    both formats are accepted here.
     """
     outputs: list[int] = []
 
@@ -113,28 +111,15 @@ def parse_aigsim_outputs(stdout: str) -> list[int]:
     return outputs
 
 
-def accepts_regex_ast(expr: Regex, candidate: str) -> bool:
-    """Reference regex semantics for fuzz tests.
-
-    The fuzz generator may create nested intersections, for example inside
-    concatenation, union, or Kleene star. The basic Thompson-style NFA builder
-    does not support Intersect nodes, so the reference side also uses the
-    product-aware NFA builder.
-    """
-    nfa = build_product_aware_nfa(expr)
-    return accepts(nfa, candidate)
-
-
 def expected_bounded(pattern: str, bound: int, candidate: str) -> int:
-    """Expected bounded semantics.
-
-    The bounded backend only accepts words whose length is at most bound.
-    """
+    """Expected bounded semantics."""
     if len(candidate) > bound:
         return 0
 
     ast = parse_regex(pattern)
-    return 1 if accepts_regex_ast(ast, candidate) else 0
+    nfa = build_product_aware_nfa(ast)
+
+    return 1 if accepts(nfa, candidate) else 0
 
 
 def all_words(alphabet: list[str], max_length: int) -> list[str]:
@@ -148,19 +133,71 @@ def all_words(alphabet: list[str], max_length: int) -> list[str]:
     return words
 
 
+def candidates_for_bound(bound: int) -> list[str]:
+    """Generate deterministic candidate words for a given bound.
+
+    The set contains:
+
+    - all words up to a small exhaustive length,
+    - selected longer words within the bound,
+    - selected words just above the bound.
+    """
+    candidates = all_words(ALPHABET, min(bound, EXHAUSTIVE_WORD_LENGTH))
+
+    selected = [
+        "aaaa",
+        "bbbb",
+        "cccc",
+        "abab",
+        "bcbc",
+        "abca",
+        "cabc",
+        "abcabc",
+        "ababab",
+        "aaaaaa",
+        "bbbbbb",
+        "cccccc",
+        "abcabca",
+        "aaaaaaa",
+    ]
+
+    # Explicitly exercise the exact bound and one-past-the-bound cases.
+    selected += [
+        "a" * bound,
+        "b" * bound,
+        "c" * bound,
+        "a" * (bound + 1),
+        "b" * (bound + 1),
+        "c" * (bound + 1),
+        ("abc" * ((bound // 3) + 2))[:bound],
+        ("abc" * ((bound // 3) + 2))[: bound + 1],
+    ]
+
+    seen = set(candidates)
+
+    for word in selected:
+        if word in seen:
+            continue
+
+        # Keep the test compact while still checking beyond-bound rejection.
+        if len(word) <= bound + 1:
+            candidates.append(word)
+            seen.add(word)
+
+    return candidates
+
+
 def generate_regex(rng: random.Random, depth: int) -> str:
-    """Generate a small random regex over {a,b}.
+    """Generate a small random regex over {a,b,c}.
 
-    The generated grammar intentionally stays small and readable:
+    Generated grammar:
 
-        atom        ::= a | b
-        regex       ::= atom
-                      | regex regex
-                      | regex | regex
-                      | regex & regex
-                      | regex*
-
-    Parentheses are inserted aggressively to avoid precedence ambiguity.
+        atom  ::= a | b | c
+        regex ::= atom
+                | regex*
+                | regex regex
+                | regex | regex
+                | regex & regex
     """
     if depth <= 0:
         return rng.choice(ALPHABET)
@@ -192,20 +229,25 @@ def generate_regex(rng: random.Random, depth: int) -> str:
 def generate_fuzz_patterns() -> list[str]:
     """Generate deterministic fuzz patterns.
 
-    Fixed seed means the fuzzer is reproducible:
-    the same regex set is generated on every test run.
+    The fixed seed makes the fuzzer reproducible.
     """
     base_patterns = [
         "a",
         "b",
+        "c",
         "a*",
         "b*",
+        "c*",
         "(ab)*",
-        "(ba)*",
-        "(a|b)*",
-        "(a|b)*&a*",
+        "(bc)*",
+        "(abc)*",
+        "(a|b|c)*",
+        "[abc]*",
+        "(a|bc)*",
+        "(a|b|c)*&a*",
+        "(a|b|c)*&[abc]*",
         "a*&b*",
-        "(ab)*&(a|b)*",
+        "(ab)*&(a|b|c)*",
     ]
 
     rng = random.Random(FUZZ_SEED)
@@ -227,16 +269,25 @@ def generate_fuzz_patterns() -> list[str]:
     return patterns
 
 
-def run_fuzz_case(pattern: str, candidates: list[str], case_index: int) -> None:
+def run_fuzz_case(
+    pattern: str,
+    bound: int,
+    candidates: list[str],
+    case_index: int,
+) -> None:
     aigsim = require_aigsim()
 
     output_dir = Path("outputs")
     output_dir.mkdir(exist_ok=True)
 
-    aag_path = output_dir / f"test_aigsim_bounded_fuzzer_{case_index}.aag"
-    stim_path = output_dir / f"test_aigsim_bounded_fuzzer_{case_index}.stim"
+    aag_path = output_dir / (
+        f"test_aigsim_bounded_fuzzer_{case_index}_bound_{bound}.aag"
+    )
+    stim_path = output_dir / (
+        f"test_aigsim_bounded_fuzzer_{case_index}_bound_{bound}.stim"
+    )
 
-    aag_text = compile_regex_to_aiger(pattern, BOUND)
+    aag_text = compile_regex_to_aiger(pattern, bound)
     aag_path.write_text(aag_text, encoding="utf-8")
 
     input_names = parse_aiger_input_names(aag_text)
@@ -256,6 +307,7 @@ def run_fuzz_case(pattern: str, candidates: list[str], case_index: int) -> None:
             "aigsim failed during bounded fuzz test\n"
             f"case index: {case_index}\n"
             f"pattern: {pattern}\n"
+            f"bound: {bound}\n"
             f"input names: {input_names}\n"
             f"vectors: {vectors}\n"
             f"stdout:\n{result.stdout}\n"
@@ -264,7 +316,7 @@ def run_fuzz_case(pattern: str, candidates: list[str], case_index: int) -> None:
 
     actual_outputs = parse_aigsim_outputs(result.stdout)
     expected_outputs = [
-        expected_bounded(pattern, BOUND, candidate)
+        expected_bounded(pattern, bound, candidate)
         for candidate in candidates
     ]
 
@@ -272,6 +324,7 @@ def run_fuzz_case(pattern: str, candidates: list[str], case_index: int) -> None:
         "aigsim output count mismatch\n"
         f"case index: {case_index}\n"
         f"pattern: {pattern}\n"
+        f"bound: {bound}\n"
         f"expected count: {len(expected_outputs)}\n"
         f"actual count: {len(actual_outputs)}\n"
         f"stdout:\n{result.stdout}"
@@ -281,7 +334,7 @@ def run_fuzz_case(pattern: str, candidates: list[str], case_index: int) -> None:
         "bounded fuzz semantic mismatch\n"
         f"case index: {case_index}\n"
         f"pattern: {pattern}\n"
-        f"bound: {BOUND}\n"
+        f"bound: {bound}\n"
         f"input names: {input_names}\n"
         f"candidates: {candidates}\n"
         f"vectors: {vectors}\n"
@@ -292,17 +345,16 @@ def run_fuzz_case(pattern: str, candidates: list[str], case_index: int) -> None:
 
 
 def test_aigsim_bounded_fuzzer() -> None:
-    candidates = all_words(ALPHABET, BOUND)
-
-    # Also include a few words beyond the bound.
-    # These must be rejected by the bounded backend, even if the regex itself
-    # would accept them unboundedly.
-    candidates += ["aaaaa", "bbbbb", "ababa", "babab"]
-
     patterns = generate_fuzz_patterns()
 
-    for index, pattern in enumerate(patterns):
-        run_fuzz_case(pattern, candidates, index)
+    for case_index, pattern in enumerate(patterns):
+        for bound in BOUNDS:
+            run_fuzz_case(
+                pattern=pattern,
+                bound=bound,
+                candidates=candidates_for_bound(bound),
+                case_index=case_index,
+            )
 
 
 def run_tests() -> None:
