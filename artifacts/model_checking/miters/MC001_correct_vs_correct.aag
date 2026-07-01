@@ -1,0 +1,28 @@
+aag 16 5 0 1 11
+2
+4
+6
+8
+10
+33
+12 6 4
+14 10 8
+16 15 13
+18 17 2
+20 6 4
+22 10 8
+24 23 21
+26 25 2
+28 26 19
+30 27 18
+32 31 29
+i0 len_is_2
+i1 x_0_is_a
+i2 x_1_is_b
+i3 x_0_is_b
+i4 x_1_is_c
+o0 miter
+c
+aigmiter
+/mnt/c/Users/ege33/Desktop/string-to-aiger/artifacts/validation/aiger/N001_bounded_correct.aag
+/mnt/c/Users/ege33/Desktop/string-to-aiger/artifacts/validation/aiger/N001_bounded_correct.aag
