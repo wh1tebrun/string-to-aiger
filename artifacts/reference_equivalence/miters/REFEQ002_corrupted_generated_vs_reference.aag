@@ -1,0 +1,22 @@
+aag 10 5 0 1 5
+2
+4
+6
+8
+10
+21
+12 4 2
+14 12 6
+16 8 2
+18 16 10
+20 19 15
+i0 len_is_2
+i1 x_0_is_a
+i2 x_1_is_b
+i3 x_0_is_b
+i4 x_1_is_c
+o0 miter
+c
+aigmiter
+/mnt/c/Users/ege33/Desktop/string-to-aiger/artifacts/reference_equivalence/corrupted/REFEQ002_corrupted_generated_vs_reference_generated_output_forced_false.aag
+/mnt/c/Users/ege33/Desktop/string-to-aiger/artifacts/reference_equivalence/reference/REFEQ002_corrupted_generated_vs_reference_reference.aag
