@@ -1,0 +1,52 @@
+aag 30 3 12 1 15
+2
+4
+6
+8 0 1
+10 32 1
+12 34 1
+14 36
+16 38
+18 40
+20 0 1
+22 42 1
+24 44 1
+26 46
+28 48
+30 50
+61
+32 16 6
+34 16 6
+36 12 4
+38 12 4
+40 16 6
+42 28 6
+44 28 6
+46 24 4
+48 24 4
+50 28 6
+52 10 2
+54 22 2
+56 54 53
+58 55 52
+60 59 57
+i0 end
+i1 is_b
+i2 is_c
+l0 state_0
+l1 state_1
+l2 state_2
+l3 state_3
+l4 state_4
+l5 state_5
+l6 state_0
+l7 state_1
+l8 state_2
+l9 state_3
+l10 state_4
+l11 state_5
+o0 miter
+c
+aigmiter
+/mnt/c/Users/ege33/Desktop/string-to-aiger/artifacts/validation/aiger/N004_sequential_correct.aag
+/mnt/c/Users/ege33/Desktop/string-to-aiger/artifacts/validation/aiger/N004_sequential_correct.aag
