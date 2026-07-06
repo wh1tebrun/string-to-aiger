@@ -1,13 +1,14 @@
 from __future__ import annotations
 
 import csv
+import os
 import shutil
 import subprocess
 from itertools import combinations
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-AIGER_TOOLS = Path('/home/egetekin/tools/aiger')
+AIGER_TOOLS = Path(os.environ.get("AIGER_TOOLS", "/home/egetekin/tools/aiger"))
 AIGMITER = AIGER_TOOLS / 'aigmiter'
 AIGUNROLL = AIGER_TOOLS / 'aigunroll'
 AIGTOCNF = AIGER_TOOLS / 'aigtocnf'

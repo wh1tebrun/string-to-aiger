@@ -19,7 +19,8 @@ The artifacts are intended to make the generated AIGER circuits inspectable and 
 From the repository root:
 
 ```bash
-export AIGSIM=/home/egetekin/tools/aiger/aigsim
+export AIGER_TOOLS=/path/to/aiger
+export AIGSIM=/path/to/aiger/aigsim
 
 python3 validation/generate_validation_artifacts.py
 python3 validation/generate_model_checking_artifacts.py
