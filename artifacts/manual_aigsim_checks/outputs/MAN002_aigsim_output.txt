@@ -1,0 +1,16 @@
+# MAN002_aigsim_output.txt
+
+Command:
+$AIGSIM artifacts/manual_aigsim_checks/aiger/bounded_ab_or_bc_correct.aag < artifacts/manual_aigsim_checks/stimuli/bounded_reject_ac.stim
+
+Stimulus:
+11001
+
+stdout:
+ 11001 0 
+
+stderr:
+*** [aigsim] line 2: pos 1: expected '0' or '1'
+
+Note:
+This is a direct manual aigsim check. For deliberately corrupted AIGERs, a mismatch is expected and useful.

@@ -1,0 +1,18 @@
+# MAN005_aigsim_output.txt
+
+Command:
+$AIGSIM artifacts/manual_aigsim_checks/aiger/sequential_bc_star_correct.aag < artifacts/manual_aigsim_checks/stimuli/sequential_reject_b.stim
+
+Stimulus:
+010
+100
+
+stdout:
+111000 010 0 111000
+000110 100 0 000110
+
+stderr:
+*** [aigsim] line 3: pos 1: expected '0' or '1'
+
+Note:
+This is a direct manual aigsim check. For deliberately corrupted AIGERs, a mismatch is expected and useful.
