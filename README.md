@@ -19,7 +19,7 @@ The central goal is to check whether the generated AIGER circuits actually imple
 The high-level pipeline is:
 
 ```text
-string or r```x constraint
+string or regex constraint
 -> parser
 -> AST / internal representation
 -> NFA or product automaton
@@ -148,7 +148,7 @@ UnionExpr(Empty(), Char("a"))
 
 # Bounded Combinational Backend
 
-The bounded backend compiles a r```x into a combinational AIGER circuit for words up to a fixed bound.
+The bounded backend compiles a regex into a combinational AIGER circuit for words up to a fixed bound.
 
 For a bound such as:
 
@@ -194,7 +194,7 @@ This backend is useful for finite-word encodings, SAT-style checks, small exampl
 
 # Sequential Latch-Based Backend
 
-The sequential backend compiles a r```x into a latch-based AIGER circuit.
+The sequential backend compiles a regex into a latch-based AIGER circuit.
 
 The circuit reads one symbol per simulation step and uses an `end` input to mark the end of the word.
 
@@ -227,7 +227,7 @@ in the AIGER header.
 
 # Intersection Support
 
-The project supports r```x intersection using `&`.
+The project supports regex intersection using `&`.
 
 Examples:
 
@@ -295,7 +295,7 @@ string_to_aiger/fixed/
 string_to_aiger/logic/
 string_to_aiger/netlist/
 string_to_aiger/aiger/
-string_to_aiger/r```x/
+string_to_aiger/regex/
 string_to_aiger/nfa/
 string_to_aiger/bounded/
 string_to_aiger/sequential/
@@ -336,14 +336,14 @@ string_to_aiger/aiger/aiger_writer.py
 string_to_aiger/aiger/aiger.py
 ```
 
-# R```x and Automata Layer
+# Regex and Automata Layer
 
 ```text
-string_to_aiger/r```x/r```x_ast.py
-string_to_aiger/r```x/r```x_parser.py
-string_to_aiger/r```x/r```x_bounded_compiler.py
-string_to_aiger/r```x/r```x_to_aiger.py
-string_to_aiger/r```x/r```x_to_product_nfa.py
+string_to_aiger/regex/regex_ast.py
+string_to_aiger/regex/regex_parser.py
+string_to_aiger/regex/regex_bounded_compiler.py
+string_to_aiger/regex/regex_to_aiger.py
+string_to_aiger/regex/regex_to_product_nfa.py
 string_to_aiger/nfa/nfa.py
 string_to_aiger/nfa/nfa_builder.py
 string_to_aiger/nfa/nfa_evaluator.py
@@ -366,7 +366,7 @@ string_to_aiger/sequential/sequential_aiger_writer.py
 string_to_aiger/sequential/sequential_simulator.py
 string_to_aiger/sequential/sequential_trace.py
 string_to_aiger/sequential/sequential_intersection.py
-string_to_aiger/sequential/sequential_r```x_compiler.py
+string_to_aiger/sequential/sequential_regex_compiler.py
 string_to_aiger/sequential/product_sequential_compiler.py
 ```
 
@@ -458,11 +458,11 @@ A major part of the project is external semantic validation using Armin Biere's 
 The validation pipeline is:
 
 ```text
-r```x
+regex
 -> generated AIGER
 -> aigsim simulation
 -> observed accept/reject output
--> reference r```x semantics
+-> reference regex semantics
 -> comparison
 ```
 
@@ -503,8 +503,8 @@ Important internal tests include:
 
 ```text
 tests/tests.py
-tests/tests_r```x.py
-tests/tests_r```x_length.py
+tests/tests_regex.py
+tests/tests_regex_length.py
 tests/tests_sequential.py
 tests/tests_sequential_trace.py
 tests/tests_intersection.py
@@ -541,7 +541,7 @@ tests/aigsim_test_utils.py
 
 # Bounded aigsim Tests
 
-The bounded semantic tests compile r```xes to combinational AIGER, simulate the generated AIGER files with `aigsim`, and compare the output against reference r```x semantics.
+The bounded semantic tests compile regexes to combinational AIGER, simulate the generated AIGER files with `aigsim`, and compare the output against reference regex semantics.
 
 Covered examples include:
 
@@ -561,7 +561,7 @@ a*&b*
 
 # Sequential aigsim Tests
 
-The sequential semantic tests compile r```xes to latch-based AIGER, encode candidate words as traces, simulate the traces with `aigsim`, and compare the final output on the `end` step against reference semantics.
+The sequential semantic tests compile regexes to latch-based AIGER, encode candidate words as traces, simulate the traces with `aigsim`, and compare the final output on the `end` step against reference semantics.
 
 Covered examples include:
 
@@ -594,17 +594,17 @@ a*&b*
 
 The project includes deterministic fuzz tests for both bounded and sequential AIGER generation.
 
-The fuzzers generate many small r```xes with a fixed random seed.
+The fuzzers generate many small regexes with a fixed random seed.
 
 Because the seed is fixed, the tests are reproducible.
 
 The fuzzing pipeline is:
 
 ```text
-generated r```x
+generated regex
 -> AIGER generation
 -> aigsim simulation
--> reference r```x semantics
+-> reference regex semantics
 -> output comparison
 ```
 
@@ -612,7 +612,7 @@ During development, the fuzzer helped detect nested-intersection and constant-ou
 
 # Cross-Backend Consistency
 
-The project also checks whether different backends agree on the same r```x and candidate words.
+The project also checks whether different backends agree on the same regex and candidate words.
 
 The compared backends are:
 
@@ -694,11 +694,11 @@ demos/
 Examples include:
 
 ```text
-r```x parser demo
+regex parser demo
 NFA demo
 NFA evaluator demo
 bounded NFA demo
-r```x-to-AIGER demo
+regex-to-AIGER demo
 sequential AIGER demo
 intersection demo
 product automaton demo
@@ -721,7 +721,7 @@ docs/
 Important documents include:
 
 ```text
-docs/r```x_grammar.md
+docs/regex_grammar.md
 docs/product_automaton.md
 docs/testing.md
 ```
@@ -735,7 +735,7 @@ For the tested cases, the project checks:
 ```text
 generated AIGER circuit output
 =
-expected r```x accept/reject result
+expected regex accept/reject result
 ```
 
 This is done by running the generated AIGER files through an external simulator.
@@ -748,7 +748,7 @@ They check the generated AIGER files as actual artifacts.
 
 The project does not provide a formal correctness proof.
 
-It does not prove that the compiler is correct for every possible r```x and every possible input word.
+It does not prove that the compiler is correct for every possible regex and every possible input word.
 
 The validation is testing-based and simulation-based.
 
@@ -770,7 +770,7 @@ Current limitations include:
 ```text
 the bounded backend requires a fixed maximum word length
 the sequential backend uses a simple stream-based input protocol
-the r```x parser does not implement full PCRE/Python r```x syntax
+the regex parser does not implement full PCRE/Python regex syntax
 unsupported features include lookaround, anchors, lazy quantifiers, dot wildcard, predefined classes, and negated classes
 the project does not perform unbounded language equivalence checking
 the project does not yet integrate SAT solvers or hardware model checkers into the main pipeline
@@ -782,18 +782,18 @@ the project does not provide a formal proof of compiler correctness
 Possible extensions include:
 
 ```text
-larger r```x fragments
+larger regex fragments
 larger alphabets in fuzzing
 more varied bounds in bounded fuzzing
 additional cross-backend checks
 integration with SAT or model checking tools
 DFA construction and minimization
 AIGER optimization
-Isabelle/HOL formalization of r```x and NFA semantics
+Isabelle/HOL formalization of regex and NFA semantics
 formal correctness proof for product automata
 formal correctness proof for bounded Boolean encoding
 formalization of an abstract AIG circuit semantics
-eventual verified r```x-to-AIGER compilation core
+eventual verified regex-to-AIGER compilation core
 ```
 
 # Summary
@@ -803,7 +803,7 @@ eventual verified r```x-to-AIGER compilation core
 The main implementation path is:
 
 ```text
-fixed strings / r```xes
+fixed strings / regexes
 -> ASTs and automata
 -> bounded or sequential encodings
 -> ASCII AIGER
@@ -812,7 +812,7 @@ fixed strings / r```xes
 The main validation path is:
 
 ```text
-r```x
+regex
 -> generated AIGER
 -> aigsim
 -> expected semantics

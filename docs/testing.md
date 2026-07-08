@@ -12,7 +12,7 @@ regular expression
 -> NFA or product automaton
 -> bounded or sequential AIGER generation
 -> external simulation with aigsim
--> comparison against reference r```x semantics
+-> comparison against reference regex semantics
 ```
 
 # External AIGER Simulation with aigsim
@@ -26,7 +26,7 @@ A bug in literal numbering, AND gate encoding, header generation, latch encoding
 The external tests require the environment variable AIGSIM to point to the aigsim binary:
 
 ```bash
-export AIGSIM=/home/```tekin/tools/aiger/aigsim
+export AIGSIM=/path/to/aiger/aigsim
 ```
 
 Then the full test suite can be run with:
@@ -43,7 +43,7 @@ This avoids silently passing the test suite without actually validating generate
 
 # Bounded Combinational AIGER
 
-The bounded backend compiles a r```x into a combinational AIGER circuit for words up to a fixed bound.
+The bounded backend compiles a regex into a combinational AIGER circuit for words up to a fixed bound.
 
 The tests check examples such as:
 
@@ -66,11 +66,11 @@ For each candidate word, the test:
 1. encodes the word as AIGER input bits,
 2. runs the generated .aag file with aigsim,
 3. parses the output bit,
-4. compares it with the expected r```x semantics.
+4. compares it with the expected regex semantics.
 
 # Sequential Latch-Based AIGER
 
-The sequential backend compiles a r```x into an AIGER circuit with latches.
+The sequential backend compiles a regex into an AIGER circuit with latches.
 
 Candidate words are encoded as traces.
 
@@ -92,7 +92,7 @@ the word aa is encoded as:
 .
 ```
 
-The final output on the end step is compared against the expected r```x result.
+The final output on the end step is compared against the expected regex result.
 
 Sequential tests cover:
 
@@ -111,7 +111,7 @@ a*&b*
 
 # Product Automaton Strategy
 
-For r```x intersections, the project supports a product-automaton strategy.
+For regex intersections, the project supports a product-automaton strategy.
 
 The product strategy is externally validated for both:
 
@@ -130,7 +130,7 @@ a*&b*
 
 # Cross-Backend Consistency
 
-The test suite also checks that different backends agree on the same r```x and candidate words.
+The test suite also checks that different backends agree on the same regex and candidate words.
 
 For selected intersection patterns, the following backends are compared:
 
@@ -149,17 +149,17 @@ This helps detect backend-specific errors.
 
 The project also includes deterministic fuzz tests.
 
-The fuzzers generate many small r```xes over a fixed alphabet using a fixed random seed.
+The fuzzers generate many small regexes over a fixed alphabet using a fixed random seed.
 
 Because the seed is fixed, the tests are reproducible.
 
 The fuzzing pipeline is:
 
 ```text
-generated r```x
+generated regex
 -> AIGER generation
 -> aigsim simulation
--> reference r```x semantics
+-> reference regex semantics
 -> output comparison
 ```
 
@@ -174,9 +174,9 @@ The fuzzer helped detect nested-intersection and constant-output edge cases duri
 
 # Reference Semantics
 
-Expected results are computed using the r```x parser, NFA construction, product-aware NFA construction for intersections, and the NFA evaluator.
+Expected results are computed using the regex parser, NFA construction, product-aware NFA construction for intersections, and the NFA evaluator.
 
-This means the tests validate the AIGER encoding pipeline against the project's reference r```x semantics.
+This means the tests validate the AIGER encoding pipeline against the project's reference regex semantics.
 
 The NFA and product-NFA components are also tested separately with hand-written unit tests.
 
@@ -184,7 +184,7 @@ The NFA and product-NFA components are also tested separately with hand-written 
 
 These tests are not a formal correctness proof.
 
-They do not prove that the compiler is correct for all possible r```xes and all possible inputs.
+They do not prove that the compiler is correct for all possible regexes and all possible inputs.
 
 However, they provide practical end-to-end semantic validation:
 
@@ -192,7 +192,7 @@ However, they provide practical end-to-end semantic validation:
 generated AIGER file
 -> external simulator
 -> observed circuit behavior
--> comparison with expected r```x behavior
+-> comparison with expected regex behavior
 ```
 
 This ensures that the generated AIGER circuits are not only syntactically valid, but are also semantically checked on representative, cross-backend, and deterministic fuzz-generated cases.
