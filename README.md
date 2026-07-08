@@ -485,7 +485,7 @@ intersection handling
 The external tests require the environment variable `AIGSIM`:
 
 ```bash
-export AIGSIM=/home/```tekin/tools/aiger/aigsim
+export AIGSIM=/path/to/aiger/aigsim
 ```
 
 The tests intentionally fail if `AIGSIM` is not configured. This prevents external semantic validation from silently passing without actually running `aigsim`.
@@ -495,7 +495,7 @@ The tests intentionally fail if `AIGSIM` is not configured. This prevents extern
 Run the complete test suite:
 
 ```bash
-export AIGSIM=/home/```tekin/tools/aiger/aigsim
+export AIGSIM=/path/to/aiger/aigsim
 python3 run_all_tests.py
 ```
 

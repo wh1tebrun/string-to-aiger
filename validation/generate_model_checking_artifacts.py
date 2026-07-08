@@ -14,7 +14,7 @@ MITER_DIR = ARTIFACT_ROOT / "miters"
 CNF_DIR = ARTIFACT_ROOT / "cnf"
 WITNESS_DIR = ARTIFACT_ROOT / "witnesses"
 
-AIGER_TOOL_DIR = Path(os.environ.get("AIGER_TOOLS", "/home/egetekin/tools/aiger"))
+AIGER_TOOL_DIR = Path(os.environ.get("AIGER_TOOLS", "/path/to/aiger"))
 AIGMITER = AIGER_TOOL_DIR / "aigmiter"
 AIGTOCNF = AIGER_TOOL_DIR / "aigtocnf"
 MINISAT = shutil.which("minisat") or "minisat"

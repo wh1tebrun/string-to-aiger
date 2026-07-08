@@ -14,7 +14,7 @@ def require_aigsim() -> str:
 
     Example:
 
-        export AIGSIM=/home/egetekin/tools/aiger/aigsim
+        export AIGSIM=/path/to/aiger/aigsim
     """
     aigsim = os.environ.get(AIGSIM_ENV_VAR)
 
@@ -22,7 +22,7 @@ def require_aigsim() -> str:
         raise AssertionError(
             "AIGSIM environment variable is not set. "
             "Set it before running external semantic tests, for example: "
-            "export AIGSIM=/home/egetekin/tools/aiger/aigsim"
+            "export AIGSIM=/path/to/aiger/aigsim"
         )
 
     if not Path(aigsim).exists():

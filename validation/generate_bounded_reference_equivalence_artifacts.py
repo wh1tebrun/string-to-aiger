@@ -14,7 +14,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 
-AIGER_TOOLS = Path(os.environ.get("AIGER_TOOLS", "/home/egetekin/tools/aiger"))
+AIGER_TOOLS = Path(os.environ.get("AIGER_TOOLS", "/path/to/aiger"))
 AIGMITER = AIGER_TOOLS / "aigmiter"
 AIGTOCNF = AIGER_TOOLS / "aigtocnf"
 MINISAT = shutil.which("minisat")

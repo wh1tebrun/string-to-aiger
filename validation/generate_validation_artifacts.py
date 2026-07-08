@@ -40,11 +40,27 @@ NEGATIVE_CASES = [
     {"case_id": "N006", "pattern": "(bc)*", "backend": "sequential", "bound": None, "corruption_type": "output_inverted", "witness": "bcbc"},
 ]
 
+_NEGATIVE_DETECTION_PREAMBLE = """\
+These cases use deliberately corrupted AIGER circuits as negative controls.
+Each corrupted circuit is derived from a correct generated AIGER by applying one of the following modifications:
+
+| corruption_type | Meaning |
+| --- | --- |
+| `output_forced_false` | The output literal is replaced by constant 0. The circuit always rejects. |
+| `output_forced_true` | The output literal is replaced by constant 1. The circuit always accepts. |
+| `output_inverted` | The output literal is bit-flipped (XOR 1). Accept and reject are swapped. |
+
+The `witness_string` column shows the input used to expose the mismatch.
+The `sanity_correct_aiger` column confirms the unmodified circuit still produces the expected result.
+The `mismatch_detected` column shows that the corrupted circuit disagrees with the expected regex semantics, confirming the validation infrastructure can detect wrong behavior.
+
+"""
+
 
 def require_aigsim() -> str:
     aigsim = os.environ.get("AIGSIM")
     if not aigsim:
-        raise AssertionError("AIGSIM is not set. Example: export AIGSIM=/home/egetekin/tools/aiger/aigsim")
+        raise AssertionError("AIGSIM is not set. Example: export AIGSIM=/path/to/aiger/aigsim")
     if not Path(aigsim).exists():
         raise AssertionError(f"AIGSIM does not exist: {aigsim}")
     return aigsim
@@ -501,7 +517,7 @@ def main() -> None:
         encoding="utf-8",
     )
     (ARTIFACT_ROOT / "negative_detection_matrix.md").write_text(
-        "# Negative Detection Matrix\n\n" + make_markdown_table(negative_headers, negative_rows),
+        "# Negative Detection Matrix\n\n" + _NEGATIVE_DETECTION_PREAMBLE + make_markdown_table(negative_headers, negative_rows),
         encoding="utf-8",
     )
 

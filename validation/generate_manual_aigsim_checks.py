@@ -13,7 +13,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-AIGSIM = Path(os.environ.get("AIGSIM", "/home/egetekin/tools/aiger/aigsim"))
+AIGSIM = Path(os.environ.get("AIGSIM", "/path/to/aiger/aigsim"))
 
 ARTIFACT_ROOT = ROOT / "artifacts" / "manual_aigsim_checks"
 AIGER_DIR = ARTIFACT_ROOT / "aiger"
