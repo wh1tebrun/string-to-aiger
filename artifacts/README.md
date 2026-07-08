@@ -22,11 +22,17 @@ From the repository root:
 export AIGER_TOOLS=/path/to/aiger
 export AIGSIM=/path/to/aiger/aigsim
 
+python3 validation/run_all_validation_artifacts.py
+```
+
+Or run the individual generators in order:
+
+```bash
 python3 validation/generate_validation_artifacts.py
 python3 validation/generate_model_checking_artifacts.py
 python3 validation/generate_sequential_model_checking_artifacts.py
 python3 validation/generate_bounded_reference_equivalence_artifacts.py
-python3 run_all_tests.py
+python3 validation/generate_manual_aigsim_checks.py
 ```
 
 ## Scope
