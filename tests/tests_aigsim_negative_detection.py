@@ -1,8 +1,15 @@
-import re
 import subprocess
 from pathlib import Path
 
-from aigsim_test_utils import require_aigsim
+from aigsim_test_utils import (
+    require_aigsim,
+    parse_aiger_header,
+    parse_aiger_input_names,
+    encode_bounded_candidate,
+    encode_sequential_trace,
+    parse_bounded_aigsim_outputs,
+    parse_final_sequential_aigsim_output,
+)
 from string_to_aiger.nfa.nfa_evaluator import accepts
 from string_to_aiger.regex.regex_parser import parse_regex
 from string_to_aiger.regex.regex_to_aiger import compile_regex_to_aiger
@@ -11,22 +18,6 @@ from string_to_aiger.sequential.sequential_aiger_writer import SequentialAigerWr
 from string_to_aiger.sequential.sequential_regex_compiler import (
     compile_regex_to_sequential,
 )
-
-
-def parse_aiger_header(aag_text: str) -> tuple[int, int, int, int, int]:
-    """Parse the ASCII AIGER header.
-
-    Returns:
-
-        M, I, L, O, A
-    """
-    first_line = aag_text.splitlines()[0]
-    parts = first_line.split()
-
-    if len(parts) != 6 or parts[0] != "aag":
-        raise AssertionError(f"Invalid AIGER header: {first_line}")
-
-    return tuple(int(value) for value in parts[1:])  # type: ignore[return-value]
 
 
 def corrupt_first_output_to_false(aag_text: str) -> str:
@@ -51,156 +42,6 @@ def corrupt_first_output_to_false(aag_text: str) -> str:
     lines[first_output_line_index] = "0"
 
     return "\n".join(lines) + "\n"
-
-
-def parse_aiger_input_names(aag_text: str) -> list[str]:
-    """Read AIGER symbol lines and return input names in i0, i1, ... order."""
-    names_by_index: dict[int, str] = {}
-
-    for line in aag_text.splitlines():
-        line = line.strip()
-
-        if not line.startswith("i"):
-            continue
-
-        parts = line.split(maxsplit=1)
-
-        if len(parts) != 2:
-            continue
-
-        index_text, name = parts
-
-        if not index_text[1:].isdigit():
-            continue
-
-        names_by_index[int(index_text[1:])] = name
-
-    return [names_by_index[i] for i in sorted(names_by_index)]
-
-
-def encode_bounded_candidate(candidate: str, input_names: list[str]) -> str:
-    """Encode one candidate word as a bounded AIGER input vector."""
-    bits: list[str] = []
-
-    for name in input_names:
-        if name.startswith("len_is_"):
-            length = int(name.removeprefix("len_is_"))
-            bits.append("1" if len(candidate) == length else "0")
-            continue
-
-        match = re.fullmatch(r"x_(\d+)_is_(.+)", name)
-        if match:
-            position = int(match.group(1))
-            symbol = match.group(2)
-
-            bit = position < len(candidate) and candidate[position] == symbol
-            bits.append("1" if bit else "0")
-            continue
-
-        raise ValueError(f"Unsupported bounded input name: {name}")
-
-    return "".join(bits)
-
-
-def encode_sequential_step(char: str | None, input_names: list[str]) -> str:
-    """Encode one sequential step.
-
-    char is None for the final end step.
-    """
-    bits: list[str] = []
-
-    for name in input_names:
-        if name == "end":
-            bits.append("1" if char is None else "0")
-            continue
-
-        if name.startswith("is_"):
-            symbol = name.removeprefix("is_")
-            bits.append("1" if char == symbol else "0")
-            continue
-
-        raise ValueError(f"Unsupported sequential input name: {name}")
-
-    return "".join(bits)
-
-
-def encode_sequential_trace(candidate: str, input_names: list[str]) -> list[str]:
-    """Encode a candidate word as a sequential aigsim trace."""
-    vectors = [encode_sequential_step(char, input_names) for char in candidate]
-
-    # Final step: end = true, all symbol inputs false.
-    vectors.append(encode_sequential_step(None, input_names))
-
-    return vectors
-
-
-def parse_bounded_aigsim_outputs(stdout: str) -> list[int]:
-    """Parse combinational aigsim output."""
-    outputs: list[int] = []
-
-    for line in stdout.splitlines():
-        line = line.strip()
-
-        if not line:
-            continue
-
-        if line.startswith("Trace is a witness"):
-            continue
-
-        parts = line.split()
-
-        if len(parts) == 1 and parts[0] in {"0", "1"}:
-            outputs.append(int(parts[0]))
-            continue
-
-        if len(parts) == 2 and parts[1] in {"0", "1"}:
-            outputs.append(int(parts[1]))
-            continue
-
-    if not outputs:
-        raise AssertionError(f"Could not parse bounded aigsim output:\n{stdout}")
-
-    return outputs
-
-
-def parse_final_sequential_aigsim_output(stdout: str) -> int:
-    """Extract the final output bit from sequential aigsim output."""
-    final_output: int | None = None
-
-    for line in stdout.splitlines():
-        line = line.strip()
-
-        if not line:
-            continue
-
-        if line.startswith("Trace is a witness"):
-            continue
-
-        parts = line.split()
-
-        if len(parts) == 4:
-            _current_state, input_vector, output, _next_state = parts
-
-            if set(input_vector) <= {"0", "1"} and output in {"0", "1"}:
-                final_output = int(output)
-
-            continue
-
-        if len(parts) == 2:
-            _input_vector, output = parts
-
-            if output in {"0", "1"}:
-                final_output = int(output)
-
-            continue
-
-        if len(parts) == 1 and parts[0] in {"0", "1"}:
-            final_output = int(parts[0])
-
-    if final_output is None:
-        raise AssertionError(f"Could not parse sequential aigsim output:\n{stdout}")
-
-    return final_output
 
 
 def expected_unbounded(pattern: str, candidate: str) -> int:

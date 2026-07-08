@@ -1,10 +1,14 @@
 import itertools
 import random
-import re
 import subprocess
 from pathlib import Path
 
-from aigsim_test_utils import require_aigsim
+from aigsim_test_utils import (
+    require_aigsim,
+    parse_aiger_input_names,
+    encode_bounded_candidate,
+    parse_bounded_aigsim_outputs,
+)
 from string_to_aiger.nfa.nfa_evaluator import accepts
 from string_to_aiger.regex.regex_parser import parse_regex
 from string_to_aiger.regex.regex_to_aiger import compile_regex_to_aiger
@@ -22,93 +26,6 @@ MAX_REGEX_DEPTH = 3
 # be much slower. We therefore exhaustively test small words and add selected
 # longer words to exercise larger bounds and length encodings.
 EXHAUSTIVE_WORD_LENGTH = 3
-
-
-def parse_aiger_input_names(aag_text: str) -> list[str]:
-    """Read AIGER symbol lines and return input names in i0, i1, ... order."""
-    names_by_index: dict[int, str] = {}
-
-    for line in aag_text.splitlines():
-        line = line.strip()
-
-        if not line.startswith("i"):
-            continue
-
-        parts = line.split(maxsplit=1)
-        if len(parts) != 2:
-            continue
-
-        index_text, name = parts
-
-        if not index_text[1:].isdigit():
-            continue
-
-        index = int(index_text[1:])
-        names_by_index[index] = name
-
-    return [names_by_index[i] for i in sorted(names_by_index)]
-
-
-def encode_candidate(candidate: str, input_names: list[str]) -> str:
-    """Encode one candidate word as a bounded AIGER input vector."""
-    bits: list[str] = []
-
-    for name in input_names:
-        if name.startswith("len_is_"):
-            length = int(name.removeprefix("len_is_"))
-            bits.append("1" if len(candidate) == length else "0")
-            continue
-
-        match = re.fullmatch(r"x_(\d+)_is_(.+)", name)
-        if match:
-            position = int(match.group(1))
-            symbol = match.group(2)
-
-            bit = position < len(candidate) and candidate[position] == symbol
-            bits.append("1" if bit else "0")
-            continue
-
-        raise ValueError(f"Unsupported bounded input name: {name}")
-
-    return "".join(bits)
-
-
-def parse_aigsim_outputs(stdout: str) -> list[int]:
-    """Parse combinational aigsim output lines.
-
-    Ordinary combinational circuits usually print:
-
-        input_vector output
-
-    Constant or zero-input circuits may print only:
-
-        output
-    """
-    outputs: list[int] = []
-
-    for line in stdout.splitlines():
-        line = line.strip()
-
-        if not line:
-            continue
-
-        if line.startswith("Trace is a witness"):
-            continue
-
-        parts = line.split()
-
-        if len(parts) == 1 and parts[0] in {"0", "1"}:
-            outputs.append(int(parts[0]))
-            continue
-
-        if len(parts) == 2 and parts[1] in {"0", "1"}:
-            outputs.append(int(parts[1]))
-            continue
-
-    if not outputs:
-        raise AssertionError(f"Could not parse aigsim output:\n{stdout}")
-
-    return outputs
 
 
 def expected_bounded(pattern: str, bound: int, candidate: str) -> int:
@@ -291,7 +208,7 @@ def run_fuzz_case(
     aag_path.write_text(aag_text, encoding="utf-8")
 
     input_names = parse_aiger_input_names(aag_text)
-    vectors = [encode_candidate(candidate, input_names) for candidate in candidates]
+    vectors = [encode_bounded_candidate(candidate, input_names) for candidate in candidates]
 
     stim_path.write_text("\n".join(vectors) + "\n.\n", encoding="utf-8")
 
@@ -314,7 +231,7 @@ def run_fuzz_case(
             f"stderr:\n{result.stderr}"
         )
 
-    actual_outputs = parse_aigsim_outputs(result.stdout)
+    actual_outputs = parse_bounded_aigsim_outputs(result.stdout)
     expected_outputs = [
         expected_bounded(pattern, bound, candidate)
         for candidate in candidates

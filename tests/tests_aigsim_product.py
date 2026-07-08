@@ -14,7 +14,14 @@ from string_to_aiger.sequential.product_sequential_compiler import (
     compile_regex_to_sequential_product,
 )
 from string_to_aiger.sequential.sequential_aiger_writer import SequentialAigerWriter
-from aigsim_test_utils import require_aigsim
+from aigsim_test_utils import (
+    require_aigsim,
+    parse_aiger_input_names,
+    encode_bounded_candidate,
+    parse_bounded_aigsim_outputs,
+    encode_sequential_trace,
+    parse_final_sequential_aigsim_output,
+)
 
 
 def safe_file_stem(pattern: str) -> str:
@@ -54,86 +61,6 @@ def expected_bounded(pattern: str, bound: int, candidate: str) -> int:
 # ---------------------------------------------------------------------------
 
 
-def parse_bounded_input_names(aag_text: str) -> list[str]:
-    names_by_index: dict[int, str] = {}
-
-    for line in aag_text.splitlines():
-        line = line.strip()
-
-        if not line.startswith("i"):
-            continue
-
-        parts = line.split(maxsplit=1)
-        if len(parts) != 2:
-            continue
-
-        index_text, name = parts
-
-        if not index_text[1:].isdigit():
-            continue
-
-        index = int(index_text[1:])
-        names_by_index[index] = name
-
-    return [names_by_index[i] for i in sorted(names_by_index)]
-
-
-def encode_bounded_candidate(candidate: str, input_names: list[str]) -> str:
-    bits: list[str] = []
-
-    for name in input_names:
-        if name.startswith("len_is_"):
-            length = int(name.removeprefix("len_is_"))
-            bits.append("1" if len(candidate) == length else "0")
-            continue
-
-        match = re.fullmatch(r"x_(\d+)_is_(.+)", name)
-        if match:
-            position = int(match.group(1))
-            symbol = match.group(2)
-
-            bit = (
-                position < len(candidate)
-                and candidate[position] == symbol
-            )
-            bits.append("1" if bit else "0")
-            continue
-
-        raise ValueError(f"Unsupported bounded input name: {name}")
-
-    return "".join(bits)
-
-
-def parse_bounded_aigsim_outputs(stdout: str) -> list[int]:
-    outputs: list[int] = []
-
-    for line in stdout.splitlines():
-        line = line.strip()
-
-        if not line:
-            continue
-
-        if line.startswith("Trace is a witness"):
-            continue
-
-        parts = line.split()
-
-        if len(parts) != 2:
-            continue
-
-        _input_vector, output = parts
-
-        if output not in {"0", "1"}:
-            continue
-
-        outputs.append(int(output))
-
-    if not outputs:
-        raise AssertionError(f"Could not parse bounded aigsim output:\n{stdout}")
-
-    return outputs
-
-
 def compile_bounded_product_aiger(pattern: str, bound: int) -> str:
     expr = compile_regex_bounded_product(pattern, bound)
     return compile_expr_to_aiger(expr)
@@ -156,7 +83,7 @@ def run_bounded_product_aigsim_case(
     aag_text = compile_bounded_product_aiger(pattern, bound)
     aag_path.write_text(aag_text, encoding="utf-8")
 
-    input_names = parse_bounded_input_names(aag_text)
+    input_names = parse_aiger_input_names(aag_text)
     vectors = [
         encode_bounded_candidate(candidate, input_names)
         for candidate in candidates
@@ -206,70 +133,6 @@ def run_bounded_product_aigsim_case(
 # ---------------------------------------------------------------------------
 
 
-def parse_sequential_input_names(aag_text: str) -> list[str]:
-    return parse_bounded_input_names(aag_text)
-
-
-def encode_sequential_step(char: str | None, input_names: list[str]) -> str:
-    bits: list[str] = []
-
-    for name in input_names:
-        if name == "end":
-            bits.append("1" if char is None else "0")
-            continue
-
-        if name.startswith("is_"):
-            symbol = name.removeprefix("is_")
-            bits.append("1" if char == symbol else "0")
-            continue
-
-        raise ValueError(f"Unsupported sequential input name: {name}")
-
-    return "".join(bits)
-
-
-def encode_sequential_candidate_trace(
-    candidate: str,
-    input_names: list[str],
-) -> list[str]:
-    vectors = [
-        encode_sequential_step(char, input_names)
-        for char in candidate
-    ]
-
-    vectors.append(encode_sequential_step(None, input_names))
-
-    return vectors
-
-
-def parse_final_sequential_aigsim_output(stdout: str) -> int:
-    final_output: int | None = None
-
-    for line in stdout.splitlines():
-        line = line.strip()
-
-        if not line:
-            continue
-
-        if line.startswith("Trace is a witness"):
-            continue
-
-        parts = line.split()
-
-        if len(parts) != 4:
-            continue
-
-        _current_state, input_vector, output, _next_state = parts
-
-        if set(input_vector) <= {"0", "1"} and output in {"0", "1"}:
-            final_output = int(output)
-
-    if final_output is None:
-        raise AssertionError(f"Could not parse sequential aigsim output:\n{stdout}")
-
-    return final_output
-
-
 def compile_sequential_product_aiger(pattern: str) -> str:
     circuit = compile_regex_to_sequential_product(pattern)
     return SequentialAigerWriter(circuit).write()
@@ -290,14 +153,14 @@ def run_sequential_product_aigsim_case(
     aag_text = compile_sequential_product_aiger(pattern)
     aag_path.write_text(aag_text, encoding="utf-8")
 
-    input_names = parse_sequential_input_names(aag_text)
+    input_names = parse_aiger_input_names(aag_text)
 
     for index, candidate in enumerate(candidates):
         stim_path = output_dir / (
             f"test_aigsim_product_{stem}_sequential_{index}.stim"
         )
 
-        vectors = encode_sequential_candidate_trace(candidate, input_names)
+        vectors = encode_sequential_trace(candidate, input_names)
         stim_path.write_text("\n".join(vectors) + "\n.\n", encoding="utf-8")
 
         result = subprocess.run(

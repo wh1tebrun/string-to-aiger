@@ -7,99 +7,12 @@ from string_to_aiger.regex.regex_parser import parse_regex
 from string_to_aiger.nfa.nfa_builder import build_nfa
 from string_to_aiger.nfa.nfa_evaluator import accepts
 from string_to_aiger.regex.regex_to_aiger import compile_regex_to_aiger
-from aigsim_test_utils import require_aigsim
-
-
-def parse_aiger_input_names(aag_text: str) -> list[str]:
-    """Read AIGER symbol lines and return input names in i0, i1, ... order."""
-    names_by_index: dict[int, str] = {}
-
-    for line in aag_text.splitlines():
-        line = line.strip()
-
-        if not line.startswith("i"):
-            continue
-
-        parts = line.split(maxsplit=1)
-        if len(parts) != 2:
-            continue
-
-        index_text, name = parts
-
-        if not index_text[1:].isdigit():
-            continue
-
-        index = int(index_text[1:])
-        names_by_index[index] = name
-
-    return [names_by_index[i] for i in sorted(names_by_index)]
-
-
-def encode_candidate(candidate: str, input_names: list[str]) -> str:
-    """Encode one candidate word according to generated AIGER input names.
-
-    Supported input-name conventions:
-
-    - len_is_N
-    - x_POS_is_CHAR
-    """
-    bits: list[str] = []
-
-    for name in input_names:
-        if name.startswith("len_is_"):
-            length = int(name.removeprefix("len_is_"))
-            bits.append("1" if len(candidate) == length else "0")
-            continue
-
-        if name.startswith("x_") and "_is_" in name:
-            left, char = name.split("_is_", maxsplit=1)
-            position = int(left.removeprefix("x_"))
-
-            bit = position < len(candidate) and candidate[position] == char
-            bits.append("1" if bit else "0")
-            continue
-
-        raise ValueError(f"Unsupported AIGER input name: {name}")
-
-    return "".join(bits)
-
-
-def parse_aigsim_outputs(stdout: str) -> list[int]:
-    """Parse combinational aigsim output lines.
-
-    For ordinary combinational circuits, aigsim prints:
-
-        input_vector output
-
-    For constant or zero-input circuits, aigsim may print only:
-
-        output
-    """
-    outputs: list[int] = []
-
-    for line in stdout.splitlines():
-        line = line.strip()
-
-        if not line:
-            continue
-
-        if line.startswith("Trace is a witness"):
-            continue
-
-        parts = line.split()
-
-        if len(parts) == 1 and parts[0] in {"0", "1"}:
-            outputs.append(int(parts[0]))
-            continue
-
-        if len(parts) == 2 and parts[1] in {"0", "1"}:
-            outputs.append(int(parts[1]))
-            continue
-
-    if not outputs:
-        raise AssertionError(f"Could not parse aigsim output:\n{stdout}")
-
-    return outputs
+from aigsim_test_utils import (
+    require_aigsim,
+    parse_aiger_input_names,
+    encode_bounded_candidate,
+    parse_bounded_aigsim_outputs,
+)
 
 
 def accepts_regex_ast(expr: Regex, candidate: str) -> bool:
@@ -154,7 +67,7 @@ def run_aigsim_case(pattern: str, bound: int, candidates: list[str]) -> None:
     aag_path.write_text(aag_text, encoding="utf-8")
 
     input_names = parse_aiger_input_names(aag_text)
-    vectors = [encode_candidate(candidate, input_names) for candidate in candidates]
+    vectors = [encode_bounded_candidate(candidate, input_names) for candidate in candidates]
 
     # aigsim stimulus files are line based and must end with ".".
     stim_path.write_text("\n".join(vectors) + "\n.\n", encoding="utf-8")
@@ -176,7 +89,7 @@ def run_aigsim_case(pattern: str, bound: int, candidates: list[str]) -> None:
         )
 
     expected = expected_by_reference(pattern, bound, candidates)
-    actual = parse_aigsim_outputs(result.stdout)
+    actual = parse_bounded_aigsim_outputs(result.stdout)
 
     assert actual == expected, (
         f"aigsim output mismatch for {pattern!r}\n"
