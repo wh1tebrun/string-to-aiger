@@ -477,8 +477,15 @@ def main() -> None:
     ]
 
     write_csv(ARTIFACT_ROOT / "model_checking_counterexamples.csv", headers, rows)
+    md_headers = [
+        "case_id", "description", "pattern", "bound", "comparison",
+        "model_checker_result", "expected_model_checker_result", "verdict",
+        "decoded_witness_string",
+    ]
     (ARTIFACT_ROOT / "model_checking_counterexamples.md").write_text(
-        "# Model checking counterexamples\n\n" + make_markdown_table(headers, rows),
+        "# Model checking counterexamples\n\n"
+        "Detailed file paths and raw SAT assignments are in the CSV.\n\n"
+        + make_markdown_table(md_headers, rows),
         encoding="utf-8",
     )
     write_readme()

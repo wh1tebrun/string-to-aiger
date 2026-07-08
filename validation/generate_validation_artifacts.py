@@ -498,12 +498,21 @@ def main() -> None:
         "expected_regex_result", "aigsim_output", "verdict",
         "aiger_file", "stimulus_file",
     ]
+    validation_md_headers = [
+        "case_id", "pattern", "backend", "intersection_strategy", "bound",
+        "candidate_string", "expected_regex_result", "aigsim_output", "verdict",
+    ]
     negative_headers = [
         "case_id", "pattern", "backend", "bound", "corruption_type",
         "witness_string", "witness_trace", "readable_witness_encoding",
         "expected_regex_result", "correct_aiger_output", "corrupted_aiger_output",
         "sanity_correct_aiger", "mismatch_detected", "correct_aiger_file",
         "corrupted_aiger_file", "stimulus_file",
+    ]
+    negative_md_headers = [
+        "case_id", "pattern", "backend", "bound", "corruption_type",
+        "witness_string", "expected_regex_result", "correct_aiger_output",
+        "corrupted_aiger_output", "sanity_correct_aiger", "mismatch_detected",
     ]
 
     validation_rows = generate_validation_matrix()
@@ -513,11 +522,16 @@ def main() -> None:
     write_csv(ARTIFACT_ROOT / "negative_detection_matrix.csv", negative_headers, negative_rows)
 
     (ARTIFACT_ROOT / "validation_matrix.md").write_text(
-        "# Validation Matrix\n\n" + make_markdown_table(validation_headers, validation_rows),
+        "# Validation Matrix\n\n"
+        "Detailed encoding vectors and file paths are in the CSV.\n\n"
+        + make_markdown_table(validation_md_headers, validation_rows),
         encoding="utf-8",
     )
     (ARTIFACT_ROOT / "negative_detection_matrix.md").write_text(
-        "# Negative Detection Matrix\n\n" + _NEGATIVE_DETECTION_PREAMBLE + make_markdown_table(negative_headers, negative_rows),
+        "# Negative Detection Matrix\n\n"
+        + _NEGATIVE_DETECTION_PREAMBLE
+        + "Detailed encoding vectors and file paths are in the CSV.\n\n"
+        + make_markdown_table(negative_md_headers, negative_rows),
         encoding="utf-8",
     )
 

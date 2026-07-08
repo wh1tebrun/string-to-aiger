@@ -730,9 +730,15 @@ def main() -> None:
     ]
 
     write_csv(ARTIFACT_ROOT / "reference_equivalence.csv", headers, rows)
+    md_headers = [
+        "case_id", "description", "pattern", "bound", "accepted_words",
+        "comparison", "model_checker_result", "expected_model_checker_result",
+        "verdict", "decoded_counterexample",
+    ]
     (ARTIFACT_ROOT / "reference_equivalence.md").write_text(
         "# Bounded reference equivalence checks\n\n"
-        + make_markdown_table(headers, rows),
+        "Detailed file paths and raw SAT assignments are in the CSV.\n\n"
+        + make_markdown_table(md_headers, rows),
         encoding="utf-8",
     )
 

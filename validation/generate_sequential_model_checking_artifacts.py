@@ -376,8 +376,15 @@ def main() -> None:
         'raw_cnf_file', 'constrained_cnf_file', 'sat_witness_file',
     ]
     write_csv(ARTIFACT_ROOT / 'sequential_counterexamples.csv', headers, rows)
+    md_headers = [
+        'case_id', 'description', 'pattern', 'depth', 'comparison',
+        'model_checker_result', 'expected_model_checker_result', 'verdict',
+        'decoded_witness_string', 'readable_witness_trace',
+    ]
     (ARTIFACT_ROOT / 'sequential_counterexamples.md').write_text(
-        '# Sequential model-checking counterexamples\n\n' + make_markdown_table(headers, rows),
+        '# Sequential model-checking counterexamples\n\n'
+        'Detailed file paths and raw SAT assignments are in the CSV.\n\n'
+        + make_markdown_table(md_headers, rows),
         encoding='utf-8',
     )
     write_readme()
