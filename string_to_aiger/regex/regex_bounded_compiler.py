@@ -6,37 +6,13 @@ from .regex_ast import (
     Intersect,
     Star,
     Regex,
+    contains_intersection,
 )
 from .regex_parser import parse_regex
 from .regex_to_product_nfa import build_product_aware_nfa
 from string_to_aiger.nfa.nfa_builder import build_nfa
 from string_to_aiger.bounded.bounded_nfa_encoding import compile_nfa_bounded
 from string_to_aiger.logic.circuit import And, Expr
-
-
-def contains_intersection(expr: Regex) -> bool:
-    """Return whether a regex AST contains an Intersect node anywhere.
-
-    The basic Thompson-style NFA builder does not support Intersect nodes.
-    Therefore, if an intersection occurs inside another construct such as
-    concatenation, union, or star, we need to use the product-aware NFA builder.
-    """
-    if isinstance(expr, Intersect):
-        return True
-
-    if isinstance(expr, Concat):
-        return contains_intersection(expr.left) or contains_intersection(expr.right)
-
-    if isinstance(expr, UnionExpr):
-        return contains_intersection(expr.left) or contains_intersection(expr.right)
-
-    if isinstance(expr, Star):
-        return contains_intersection(expr.expr)
-
-    if isinstance(expr, (Empty, Char)):
-        return False
-
-    raise TypeError(f"Unknown regex AST node: {type(expr)}")
 
 
 def compile_regex_ast_bounded(expr: Regex, bound: int) -> Expr:
