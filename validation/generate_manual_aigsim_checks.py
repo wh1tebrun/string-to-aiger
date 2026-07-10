@@ -1,7 +1,4 @@
 from __future__ import annotations
-from string_to_aiger.regex.regex_to_aiger import compile_regex_to_aiger
-from string_to_aiger.sequential.sequential_regex_compiler import compile_regex_to_sequential
-from string_to_aiger.sequential.sequential_aiger_writer import SequentialAigerWriter
 
 import csv
 import os
@@ -12,6 +9,13 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
+
+from string_to_aiger.regex.regex_to_aiger import compile_regex_to_aiger
+from string_to_aiger.sequential.sequential_aiger_writer import SequentialAigerWriter
+from string_to_aiger.sequential.sequential_regex_compiler import (
+    compile_regex_to_sequential,
+)
+
 
 AIGSIM = Path(os.environ.get("AIGSIM", "/path/to/aiger/aigsim"))
 
@@ -45,7 +49,9 @@ def parse_aiger_header(aag_text: str) -> tuple[int, int, int, int, int]:
 
 
 def parse_input_symbols(aag_text: str) -> list[str]:
-    _max_var, num_inputs, _num_latches, _num_outputs, _num_ands = parse_aiger_header(aag_text)
+    _max_var, num_inputs, _num_latches, _num_outputs, _num_ands = (
+        parse_aiger_header(aag_text)
+    )
     symbols = [f"input_{index}" for index in range(num_inputs)]
 
     for line in aag_text.splitlines():
@@ -71,7 +77,9 @@ def parse_input_symbols(aag_text: str) -> list[str]:
 
 
 def force_first_output_false(aag_text: str) -> str:
-    _max_var, num_inputs, num_latches, num_outputs, _num_ands = parse_aiger_header(aag_text)
+    _max_var, num_inputs, num_latches, num_outputs, _num_ands = (
+        parse_aiger_header(aag_text)
+    )
 
     if num_outputs < 1:
         raise AssertionError("Cannot corrupt AIGER without outputs")
@@ -112,6 +120,10 @@ def make_bounded_stimulus(aag_text: str, word: str) -> str:
 
 
 def make_sequential_stimulus(aag_text: str, word: str) -> str:
+    """Encode one character per step, followed by a final end step.
+
+    The empty word is therefore represented by the end step alone.
+    """
     inputs = parse_input_symbols(aag_text)
     lines: list[str] = []
 
@@ -137,7 +149,9 @@ def make_sequential_stimulus(aag_text: str, word: str) -> str:
 def run_aigsim(aag_path: Path, stimulus_path: Path) -> tuple[str, str, str]:
     stimulus = stimulus_path.read_text(encoding="utf-8")
     aag_text = aag_path.read_text(encoding="utf-8")
-    _max_var, _num_inputs, num_latches, _num_outputs, _num_ands = parse_aiger_header(aag_text)
+    _max_var, _num_inputs, num_latches, _num_outputs, _num_ands = (
+        parse_aiger_header(aag_text)
+    )
 
     result = subprocess.run(
         [str(AIGSIM), str(aag_path)],
@@ -233,8 +247,14 @@ def generate_bounded_files() -> tuple[Path, Path, dict[str, Path]]:
         "reject_ac": STIMULUS_DIR / "bounded_reject_ac.stim",
     }
 
-    stimuli["accept_ab"].write_text(make_bounded_stimulus(correct_aag, "ab"), encoding="utf-8")
-    stimuli["reject_ac"].write_text(make_bounded_stimulus(correct_aag, "ac"), encoding="utf-8")
+    stimuli["accept_ab"].write_text(
+        make_bounded_stimulus(correct_aag, "ab"),
+        encoding="utf-8",
+    )
+    stimuli["reject_ac"].write_text(
+        make_bounded_stimulus(correct_aag, "ac"),
+        encoding="utf-8",
+    )
 
     return correct_path, corrupted_path, stimuli
 
@@ -250,18 +270,34 @@ def generate_sequential_files() -> tuple[Path, Path, dict[str, Path]]:
     corrupted_path.write_text(force_first_output_false(correct_aag), encoding="utf-8")
 
     stimuli = {
+        "accept_empty": STIMULUS_DIR / "sequential_accept_empty.stim",
         "accept_bc": STIMULUS_DIR / "sequential_accept_bc.stim",
+        "accept_bcbc": STIMULUS_DIR / "sequential_accept_bcbc.stim",
         "reject_b": STIMULUS_DIR / "sequential_reject_b.stim",
+        "reject_bcb": STIMULUS_DIR / "sequential_reject_bcb.stim",
     }
 
-    stimuli["accept_bc"].write_text(make_sequential_stimulus(correct_aag, "bc"), encoding="utf-8")
-    stimuli["reject_b"].write_text(make_sequential_stimulus(correct_aag, "b"), encoding="utf-8")
+    words = {
+        "accept_empty": "",
+        "accept_bc": "bc",
+        "accept_bcbc": "bcbc",
+        "reject_b": "b",
+        "reject_bcb": "bcb",
+    }
+
+    for name, word in words.items():
+        stimuli[name].write_text(
+            make_sequential_stimulus(correct_aag, word),
+            encoding="utf-8",
+        )
 
     return correct_path, corrupted_path, stimuli
 
 
 def run_case(
     case_id: str,
+    backend: str,
+    pattern: str,
     description: str,
     aag_path: Path,
     stimulus_path: Path,
@@ -300,6 +336,8 @@ def run_case(
 
     return {
         "case_id": case_id,
+        "backend": backend,
+        "pattern": pattern,
         "description": description,
         "aag_file": artifact_relative(aag_path),
         "stimulus_file": artifact_relative(stimulus_path),
@@ -319,17 +357,39 @@ def write_readme() -> None:
 
 This directory contains small, manually inspectable `aigsim` checks.
 
-The goal is to make the AIGER validation easy to inspect from the command line:
+The main validation path is:
 
 ```text
 AAG file + STIM file -> aigsim -> actual output
 ```
 
+`aigsim` performs concrete simulation for the supplied stimulus trace. These
+checks are intentionally small enough to inspect manually.
+
+## Sequential trace family
+
+The sequential example uses `(bc)*`, analogously to an `(ab)*` example. The
+same generated sequential AIGER is simulated on traces of different lengths:
+
+| word | stimulus meaning | expected output |
+| --- | --- | --- |
+| `<empty>` | `end` | 1 |
+| `bc` | `b, c, end` | 1 |
+| `bcbc` | `b, c, b, c, end` | 1 |
+| `b` | `b, end` | 0 |
+| `bcb` | `b, c, b, end` | 0 |
+
+This demonstrates zero repetitions, one repetition, multiple repetitions, and
+incomplete rejecting traces.
+
 ## Important terminology
 
-`output_forced_false` means a deliberately modified AIGER used as a negative-control example.
+`output_forced_false` means a deliberately modified AIGER used as a
+negative-control example.
 
-It is not meant to be a real compiler output. It is produced by taking a correct AIGER and forcing its output literal to constant false. This should make accepting witnesses fail, so the validation pipeline should detect a mismatch.
+It is not a real compiler output. It is produced by taking a correct AIGER and
+forcing its output literal to constant false. This should make accepting
+witnesses fail, so the validation pipeline should detect a mismatch.
 
 ## How to read the table
 
@@ -339,28 +399,34 @@ For correct AIGER files:
 matches_expected_semantics = YES
 ```
 
-For deliberately corrupted AIGER files:
+For deliberately modified negative-control AIGER files:
 
 ```text
 matches_expected_semantics = NO
 mismatch_detected = YES
 ```
 
-So corrupted examples should not be described as “matching”. The useful result is that the mismatch is visible and detected.
+The useful result in a negative-control case is that the mismatch is visible
+and detected.
 
-## Re-run examples
+## Re-run all manual examples
 
 From the repository root:
 
 ```bash
 export AIGSIM=/path/to/aiger/aigsim
-
-$AIGSIM artifacts/manual_aigsim_checks/aiger/bounded_ab_or_bc_correct.aag < artifacts/manual_aigsim_checks/stimuli/bounded_accept_ab.stim
-$AIGSIM artifacts/manual_aigsim_checks/aiger/bounded_ab_or_bc_output_forced_false.aag < artifacts/manual_aigsim_checks/stimuli/bounded_accept_ab.stim
-$AIGSIM artifacts/manual_aigsim_checks/aiger/sequential_bc_star_correct.aag < artifacts/manual_aigsim_checks/stimuli/sequential_accept_bc.stim
+bash scripts/demo_manual_aigsim_checks.sh
 ```
 
-The captured stdout/stderr files are stored in `artifacts/manual_aigsim_checks/outputs/`.
+Individual examples can also be run directly:
+
+```bash
+$AIGSIM artifacts/manual_aigsim_checks/aiger/sequential_bc_star_correct.aag < artifacts/manual_aigsim_checks/stimuli/sequential_accept_bcbc.stim
+$AIGSIM artifacts/manual_aigsim_checks/aiger/sequential_bc_star_output_forced_false.aag < artifacts/manual_aigsim_checks/stimuli/sequential_accept_bc.stim
+```
+
+The detailed file paths, commands, and captured stdout/stderr files are stored
+in the CSV and in `artifacts/manual_aigsim_checks/outputs/`.
 """
 
     (ARTIFACT_ROOT / "README.md").write_text(content, encoding="utf-8")
@@ -371,12 +437,16 @@ def main() -> None:
     ensure_dirs()
 
     bounded_correct, bounded_corrupted, bounded_stimuli = generate_bounded_files()
-    sequential_correct, sequential_corrupted, sequential_stimuli = generate_sequential_files()
+    sequential_correct, sequential_corrupted, sequential_stimuli = (
+        generate_sequential_files()
+    )
 
     rows = [
         run_case(
             "MAN001",
-            "correct bounded AIGER accepts ab for pattern ab|bc",
+            "bounded",
+            "ab|bc",
+            "correct bounded AIGER accepts ab",
             bounded_correct,
             bounded_stimuli["accept_ab"],
             "ab",
@@ -385,7 +455,9 @@ def main() -> None:
         ),
         run_case(
             "MAN002",
-            "correct bounded AIGER rejects ac for pattern ab|bc",
+            "bounded",
+            "ab|bc",
+            "correct bounded AIGER rejects ac",
             bounded_correct,
             bounded_stimuli["reject_ac"],
             "ac",
@@ -394,7 +466,9 @@ def main() -> None:
         ),
         run_case(
             "MAN003",
-            "output-forced-false bounded AIGER disagrees on accepting witness ab",
+            "bounded negative control",
+            "ab|bc",
+            "output-forced-false AIGER disagrees on accepting witness ab",
             bounded_corrupted,
             bounded_stimuli["accept_ab"],
             "ab",
@@ -403,7 +477,20 @@ def main() -> None:
         ),
         run_case(
             "MAN004",
-            "correct sequential AIGER accepts trace b,c,end for pattern (bc)*",
+            "sequential",
+            "(bc)*",
+            "correct sequential AIGER accepts the empty trace",
+            sequential_correct,
+            sequential_stimuli["accept_empty"],
+            "<empty> -> end",
+            "1",
+            True,
+        ),
+        run_case(
+            "MAN005",
+            "sequential",
+            "(bc)*",
+            "correct sequential AIGER accepts one repetition",
             sequential_correct,
             sequential_stimuli["accept_bc"],
             "b, c, end",
@@ -411,8 +498,21 @@ def main() -> None:
             True,
         ),
         run_case(
-            "MAN005",
-            "correct sequential AIGER rejects trace b,end for pattern (bc)*",
+            "MAN006",
+            "sequential",
+            "(bc)*",
+            "correct sequential AIGER accepts two repetitions",
+            sequential_correct,
+            sequential_stimuli["accept_bcbc"],
+            "b, c, b, c, end",
+            "1",
+            True,
+        ),
+        run_case(
+            "MAN007",
+            "sequential",
+            "(bc)*",
+            "correct sequential AIGER rejects an incomplete repetition",
             sequential_correct,
             sequential_stimuli["reject_b"],
             "b, end",
@@ -420,8 +520,21 @@ def main() -> None:
             True,
         ),
         run_case(
-            "MAN006",
-            "output-forced-false sequential AIGER disagrees on accepting trace b,c,end",
+            "MAN008",
+            "sequential",
+            "(bc)*",
+            "correct sequential AIGER rejects a longer incomplete repetition",
+            sequential_correct,
+            sequential_stimuli["reject_bcb"],
+            "b, c, b, end",
+            "0",
+            True,
+        ),
+        run_case(
+            "MAN009",
+            "sequential negative control",
+            "(bc)*",
+            "output-forced-false AIGER disagrees on accepting trace bc",
             sequential_corrupted,
             sequential_stimuli["accept_bc"],
             "b, c, end",
@@ -432,6 +545,8 @@ def main() -> None:
 
     headers = [
         "case_id",
+        "backend",
+        "pattern",
         "description",
         "aag_file",
         "stimulus_file",
@@ -445,10 +560,23 @@ def main() -> None:
         "captured_output_file",
     ]
 
+    markdown_headers = [
+        "case_id",
+        "backend",
+        "pattern",
+        "word_or_trace",
+        "expected_semantic_output",
+        "aigsim_actual_output",
+        "matches_expected_semantics",
+        "mismatch_detected",
+        "verdict",
+    ]
+
     write_csv(ARTIFACT_ROOT / "manual_aigsim_checks.csv", headers, rows)
     (ARTIFACT_ROOT / "manual_aigsim_checks.md").write_text(
         "# Manual aigsim checks\n\n"
-        + make_markdown_table(headers, rows),
+        "Detailed file paths, commands, and captured output files are in the CSV.\n\n"
+        + make_markdown_table(markdown_headers, rows),
         encoding="utf-8",
     )
     write_readme()
