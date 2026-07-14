@@ -728,6 +728,44 @@ docs/testing.md
 
 `docs/testing.md` explains the external semantic validation approach in more detail.
 
+# Hardware Model Checking with rIC3
+
+The sequential AIGER backend can also be checked with the
+[rIC3 hardware model checker](https://github.com/gipsyh/rIC3).
+
+This is an optional external validation step and requires Docker.
+
+```bash
+docker pull gipsyh/ric3:1.6
+./validation/run_ric3_hwmcc.sh
+```
+
+The validation script generates sequential AIGER models and asks rIC3
+whether the accepting output is reachable.
+
+| Pattern | Expected result | Meaning |
+| --- | --- | --- |
+| `ab` | `SAT` | An accepting trace exists. |
+| `b&c` | `UNSAT` | No valid trace can satisfy both expressions. |
+| `(ab|ba)*&(aa|bb)*` | `SAT` | Both starred expressions accept the empty word. |
+| `((ab|ba)(ab|ba)*)&((aa|bb)(aa|bb)*)` | `UNSAT` | Removing epsilon produces an empty intersection. |
+
+For these checks:
+
+```text
+SAT
+=
+the accepting output is reachable
+
+UNSAT
+=
+IC3 proved that the accepting output is unreachable
+```
+
+The expression `(ab|ba)*&(aa|bb)*` is not an empty language because both
+sides contain a Kleene star and therefore accept epsilon. The final case
+encodes one-or-more repetitions as `R R*`, removing the epsilon case.
+
 # What Is Validated
 
 For the tested cases, the project checks:
@@ -738,7 +776,7 @@ generated AIGER circuit output
 expected regex accept/reject result
 ```
 
-This is done by running the generated AIGER files through an external simulator.
+Most behavioral checks run the generated AIGER files through an external simulator. Selected sequential models are additionally checked with the rIC3 hardware model checker.
 
 Therefore, the tests do not only inspect Python objects internally.
 
@@ -750,7 +788,7 @@ The project does not provide a formal correctness proof.
 
 It does not prove that the compiler is correct for every possible regex and every possible input word.
 
-The validation is testing-based and simulation-based.
+The validation combines testing, external simulation, and targeted unbounded reachability proofs for selected sequential models.
 
 However, it is end-to-end and external:
 
@@ -773,7 +811,7 @@ the sequential backend uses a simple stream-based input protocol
 the regex parser does not implement full PCRE/Python regex syntax
 unsupported features include lookaround, anchors, lazy quantifiers, dot wildcard, predefined classes, and negated classes
 the project does not perform unbounded language equivalence checking
-the project does not yet integrate SAT solvers or hardware model checkers into the main pipeline
+rIC3 validation is optional, requires Docker, and is not part of the default test suite
 the project does not provide a formal proof of compiler correctness
 ```
 
@@ -786,7 +824,7 @@ larger regex fragments
 larger alphabets in fuzzing
 more varied bounds in bounded fuzzing
 additional cross-backend checks
-integration with SAT or model checking tools
+broader SAT/model-checking integration and automated witness extraction
 DFA construction and minimization
 AIGER optimization
 Isabelle/HOL formalization of regex and NFA semantics
@@ -814,9 +852,9 @@ The main validation path is:
 ```text
 regex
 -> generated AIGER
--> aigsim
--> expected semantics
--> comparison
+-> aigsim or rIC3
+-> observed behavior or reachability proof
+-> comparison with expected semantics
 ```
 
 The project therefore aims not only to generate AIGER files, but also to validate that the generated circuits behave according to the intended regular-expression semantics.

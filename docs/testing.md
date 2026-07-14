@@ -180,6 +180,43 @@ This means the tests validate the AIGER encoding pipeline against the project's 
 
 The NFA and product-NFA components are also tested separately with hand-written unit tests.
 
+# Hardware Model Checking with rIC3
+
+Selected sequential AIGER models are also checked with the rIC3 hardware
+model checker. Unlike bounded simulation, this check is unbounded: rIC3
+either finds a reachable accepting state or proves that no accepting state
+is reachable.
+
+## Requirements
+
+```text
+Docker
+gipsyh/ric3:1.6
+```
+
+Run the validation set from WSL or another Bash environment:
+
+```bash
+docker pull gipsyh/ric3:1.6
+./validation/run_ric3_hwmcc.sh
+```
+
+The script checks the following cases:
+
+| Pattern | Expected result |
+| --- | --- |
+| `ab` | `SAT` |
+| `b&c` | `UNSAT` |
+| `(ab|ba)*&(aa|bb)*` | `SAT` |
+| `((ab|ba)(ab|ba)*)&((aa|bb)(aa|bb)*)` | `UNSAT` |
+
+`SAT` means that an accepting output is reachable. `UNSAT` means that IC3
+proved the accepting output unreachable.
+
+The exact expression `(ab|ba)*&(aa|bb)*` accepts epsilon because both sides
+use Kleene star. The last case replaces each `R*` with `R R*`, requiring at
+least one repetition and producing the intended empty intersection.
+
 # What This Does and Does Not Prove
 
 These tests are not a formal correctness proof.
