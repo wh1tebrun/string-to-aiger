@@ -14,6 +14,8 @@ from aigsim_test_utils import (
     require_aigsim,
     parse_aiger_input_names,
     encode_sequential_trace,
+    encode_sequential_assignment,
+    parse_aiger_header,
     parse_final_sequential_aigsim_output,
 )
 
@@ -103,6 +105,102 @@ def run_aigsim_case(pattern: str, candidates: list[str]) -> None:
             f"stdout:\n{result.stdout}"
         )
 
+
+
+def run_raw_vector_case(
+    pattern: str,
+    assignments: list[set[str]],
+    expected: int,
+    suffix: str,
+) -> None:
+    """Run arbitrary, possibly invalid, input vectors through aigsim."""
+    aigsim = require_aigsim()
+
+    output_dir = Path("outputs")
+    output_dir.mkdir(exist_ok=True)
+
+    stem = safe_file_stem(pattern)
+    aag_path = output_dir / f"test_aigsim_{stem}_{suffix}.aag"
+    stim_path = output_dir / f"test_aigsim_{stem}_{suffix}.stim"
+
+    aag_text = compile_sequential_aiger(pattern)
+    aag_path.write_text(aag_text, encoding="utf-8")
+
+    input_names = parse_aiger_input_names(aag_text)
+    vectors = [
+        encode_sequential_assignment(assignment, input_names)
+        for assignment in assignments
+    ]
+    stim_path.write_text("\n".join(vectors) + "\n.\n", encoding="utf-8")
+
+    result = subprocess.run(
+        [aigsim, str(aag_path), str(stim_path)],
+        check=False,
+        text=True,
+        capture_output=True,
+    )
+
+    if result.returncode != 0:
+        raise AssertionError(
+            "aigsim failed for raw sequential vectors\n"
+            f"pattern: {pattern}\n"
+            f"assignments: {assignments}\n"
+            f"input names: {input_names}\n"
+            f"vectors: {vectors}\n"
+            f"stdout:\n{result.stdout}\n"
+            f"stderr:\n{result.stderr}"
+        )
+
+    actual = parse_final_sequential_aigsim_output(result.stdout)
+
+    assert actual == expected, (
+        "sequential protocol guard mismatch\n"
+        f"pattern: {pattern}\n"
+        f"assignments: {assignments}\n"
+        f"input names: {input_names}\n"
+        f"vectors: {vectors}\n"
+        f"expected: {expected}\n"
+        f"actual:   {actual}\n"
+        f"stdout:\n{result.stdout}"
+    )
+
+
+def test_sequential_protocol_adds_exactly_one_validity_latch() -> None:
+    circuit = compile_regex_to_sequential("b&c")
+    assert "protocol_valid" in circuit.latches
+
+    aag_text = SequentialAigerWriter(circuit).write()
+    _max_var, _inputs, num_latches, _outputs, _ands = parse_aiger_header(aag_text)
+
+    assert num_latches == len(circuit.latches)
+    assert sum(
+        1
+        for line in aag_text.splitlines()
+        if line.startswith("l") and line.endswith(" protocol_valid")
+    ) == 1
+
+
+def test_aigsim_sequential_rejects_two_active_symbols() -> None:
+    # Without the protocol latch, this invalid vector can make the left side
+    # consume b and the right side consume c in the same clock step, causing
+    # the unsatisfiable intersection b&c to be accepted.
+    run_raw_vector_case(
+        pattern="b&c",
+        assignments=[{"is_b", "is_c"}, {"end"}],
+        expected=0,
+        suffix="invalid_two_symbols",
+    )
+
+
+def test_aigsim_sequential_rejects_symbol_on_end_step() -> None:
+    # a* accepts epsilon, so the old output end & accepting_state incorrectly
+    # accepted an end step that also asserted is_a.
+    run_raw_vector_case(
+        pattern="a*",
+        assignments=[{"end", "is_a"}],
+        expected=0,
+        suffix="invalid_end_with_symbol",
+    )
 
 def test_aigsim_sequential_astar() -> None:
     run_aigsim_case(
@@ -257,6 +355,9 @@ def test_aigsim_sequential_long_mixed_union_concat_star() -> None:
 
 
 def run_tests() -> None:
+    test_sequential_protocol_adds_exactly_one_validity_latch()
+    test_aigsim_sequential_rejects_two_active_symbols()
+    test_aigsim_sequential_rejects_symbol_on_end_step()
     test_aigsim_sequential_astar()
     test_aigsim_sequential_abstar()
     test_aigsim_sequential_union_star()

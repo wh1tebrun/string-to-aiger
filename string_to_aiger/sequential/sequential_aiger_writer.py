@@ -1,5 +1,5 @@
 from string_to_aiger.logic.circuit import BoolConst, InputVar, And, Or, Expr
-from .sequential_circuit import SequentialCircuit
+from .sequential_circuit import Not, SequentialCircuit, SequentialExpr
 
 
 class SequentialAigerWriter:
@@ -42,9 +42,12 @@ class SequentialAigerWriter:
         self.and_literals.append((out_lit, left_lit, right_lit))
         return out_lit
 
-    def compile_expr(self, expr: Expr) -> int:
+    def compile_expr(self, expr: SequentialExpr) -> int:
         if isinstance(expr, BoolConst):
             return 1 if expr.value else 0
+
+        if isinstance(expr, Not):
+            return self.invert(self.compile_expr(expr.operand))
 
         if isinstance(expr, InputVar):
             if expr.name in self.input_literals:

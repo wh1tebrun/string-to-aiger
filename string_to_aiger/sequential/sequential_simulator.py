@@ -1,6 +1,53 @@
+from string_to_aiger.logic.circuit import (
+    BoolConst,
+    InputVar,
+    LengthIs,
+    CharAtIs,
+    And,
+    Or,
+)
 from string_to_aiger.logic.evaluator import evaluate
-from .sequential_circuit import SequentialCircuit
+
+from .sequential_circuit import Not, SequentialCircuit, SequentialExpr
 from .sequential_trace import validate_trace
+
+
+def evaluate_sequential_expr(
+    expr: SequentialExpr,
+    env: dict[str, bool],
+) -> bool:
+    """Evaluate sequential expressions, including protocol negation."""
+    if isinstance(expr, BoolConst):
+        return expr.value
+
+    if isinstance(expr, InputVar):
+        return env.get(expr.name, False)
+
+    if isinstance(expr, Not):
+        return not evaluate_sequential_expr(expr.operand, env)
+
+    if isinstance(expr, And):
+        return evaluate_sequential_expr(
+            expr.left,  # type: ignore[arg-type]
+            env,
+        ) and evaluate_sequential_expr(
+            expr.right,  # type: ignore[arg-type]
+            env,
+        )
+
+    if isinstance(expr, Or):
+        return evaluate_sequential_expr(
+            expr.left,  # type: ignore[arg-type]
+            env,
+        ) or evaluate_sequential_expr(
+            expr.right,  # type: ignore[arg-type]
+            env,
+        )
+
+    if isinstance(expr, (LengthIs, CharAtIs)):
+        return evaluate(expr, candidate="", env=env)
+
+    raise TypeError(f"Unsupported sequential expression: {type(expr)}")
 
 
 def build_env(
@@ -45,13 +92,13 @@ def simulate(
         env = build_env(circuit, latch_values, inputs)
 
         outputs = {
-            name: evaluate(expr, candidate="", env=env)
+            name: evaluate_sequential_expr(expr, env)
             for name, expr in circuit.outputs.items()
         }
         outputs_per_step.append(outputs)
 
         next_latch_values = {
-            name: evaluate(latch.next_expr, candidate="", env=env)
+            name: evaluate_sequential_expr(latch.next_expr, env)
             for name, latch in circuit.latches.items()
         }
 

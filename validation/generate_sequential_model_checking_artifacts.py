@@ -83,12 +83,6 @@ def parse_aiger_header(aag_text: str) -> tuple[int, int, int, int, int]:
     return tuple(int(value) for value in parts[1:])  # type: ignore[return-value]
 
 
-def parse_aiger_input_literals(aag_text: str) -> list[int]:
-    _max_var, num_inputs, _num_latches, _num_outputs, _num_ands = parse_aiger_header(aag_text)
-    lines = aag_text.splitlines()
-    return [int(lines[1 + index].strip()) for index in range(num_inputs)]
-
-
 def parse_unrolled_input_symbols(aag_text: str) -> dict[int, str]:
     symbols: dict[int, str] = {}
     for line in aag_text.splitlines():
@@ -122,17 +116,46 @@ def parse_cnf_literal_mapping(cnf_text: str) -> dict[int, int]:
 
 
 def build_input_variable_map(unrolled_aag: str, cnf_text: str) -> dict[tuple[int, str], int]:
-    input_literals = parse_aiger_input_literals(unrolled_aag)
+    """Map unrolled input symbols to CNF variables after AIGER reencoding.
+
+    ``aigtocnf -m`` reencodes the AIGER before emitting the literal-to-CNF
+    mapping comments. Input order and input-symbol indices are preserved, but
+    the original input literals from the unrolled AAG are not necessarily
+    preserved.
+
+    After reencoding, input index ``i`` has canonical AIGER literal
+    ``2 * (i + 1)``. Therefore the CNF mapping must be looked up with that
+    canonical literal rather than with the original unrolled literal.
+    """
+    _max_var, num_inputs, _num_latches, _num_outputs, _num_ands = (
+        parse_aiger_header(unrolled_aag)
+    )
     input_symbols = parse_unrolled_input_symbols(unrolled_aag)
     literal_to_cnf_var = parse_cnf_literal_mapping(cnf_text)
     result: dict[tuple[int, str], int] = {}
-    for input_index, literal in enumerate(input_literals):
-        if input_index not in input_symbols:
-            continue
-        if literal not in literal_to_cnf_var:
-            continue
-        step, signal = parse_step_signal(input_symbols[input_index])
-        result[(step, signal)] = literal_to_cnf_var[literal]
+
+    for input_index in range(num_inputs):
+        symbol = input_symbols.get(input_index)
+        if symbol is None:
+            raise AssertionError(
+                f"Missing symbol for unrolled input index {input_index}"
+            )
+
+        canonical_literal = 2 * (input_index + 1)
+        cnf_variable = literal_to_cnf_var.get(canonical_literal)
+        if cnf_variable is None:
+            raise AssertionError(
+                "Missing CNF mapping for canonical reencoded input literal "
+                f"{canonical_literal} at input index {input_index}"
+            )
+
+        step, signal = parse_step_signal(symbol)
+        key = (step, signal)
+        if key in result:
+            raise AssertionError(f"Duplicate unrolled input signal: {key}")
+
+        result[key] = cnf_variable
+
     return result
 
 

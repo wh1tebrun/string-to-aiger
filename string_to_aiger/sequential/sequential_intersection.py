@@ -7,7 +7,7 @@ from string_to_aiger.logic.circuit import (
     Or,
     Expr,
 )
-from .sequential_circuit import SequentialCircuit
+from .sequential_circuit import Not, SequentialCircuit, SequentialExpr
 
 
 def prefixed_name(prefix: str, name: str) -> str:
@@ -15,7 +15,11 @@ def prefixed_name(prefix: str, name: str) -> str:
     return f"{prefix}_{name}"
 
 
-def rename_latch_vars(expr: Expr, latch_names: set[str], prefix: str) -> Expr:
+def rename_latch_vars(
+    expr: SequentialExpr,
+    latch_names: set[str],
+    prefix: str,
+) -> SequentialExpr:
     """Rename only latch variables inside an expression.
 
     Inputs such as is_a, is_b, and end are shared between circuits
@@ -26,6 +30,9 @@ def rename_latch_vars(expr: Expr, latch_names: set[str], prefix: str) -> Expr:
     """
     if isinstance(expr, BoolConst):
         return expr
+
+    if isinstance(expr, Not):
+        return Not(rename_latch_vars(expr.operand, latch_names, prefix))
 
     if isinstance(expr, InputVar):
         if expr.name in latch_names:
@@ -81,7 +88,7 @@ def renamed_output_expr(
     source: SequentialCircuit,
     output_name: str,
     prefix: str,
-) -> Expr:
+) -> SequentialExpr:
     """Return a renamed output expression from a source circuit."""
     if output_name not in source.outputs:
         raise ValueError(f"Missing output: {output_name}")

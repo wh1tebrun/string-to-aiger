@@ -7,7 +7,7 @@ Stimulus:
 100
 
 stdout:
-111000 100 1 111000
+1110001 100 1 1110001
 
 stderr:
 *** [aigsim] line 2: pos 1: expected '0' or '1'

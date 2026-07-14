@@ -39,10 +39,14 @@ def compile_nfa_to_sequential(nfa: NFA) -> SequentialCircuit:
     Each NFA state is represented by one latch. A latch is true exactly when
     the corresponding NFA state is currently active.
 
-    Input protocol:
-    - In each normal step, exactly one symbol input such as is_a / is_b is true.
-    - In the final step, end is true.
-    - The accept output is true iff end is true and an accepting state is active.
+    Raw input interface:
+    - Symbol inputs such as is_a / is_b drive NFA transitions.
+    - The final step sets end=true.
+    - The raw accept output is true iff end is true and an accepting state is active.
+
+    The high-level regex compilers add one shared protocol_valid latch after
+    all structural composition.  That latch enforces one-hot character steps
+    and a symbol-free end step inside the generated circuit.
     """
     circuit = SequentialCircuit()
     states = sorted(nfa.states())

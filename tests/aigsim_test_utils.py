@@ -168,3 +168,26 @@ def parse_final_sequential_aigsim_output(stdout: str) -> int:
     if final_output is None:
         raise AssertionError(f"Could not parse sequential aigsim output:\n{stdout}")
     return final_output
+
+
+def encode_sequential_assignment(
+    active_inputs: set[str],
+    input_names: list[str],
+) -> str:
+    """Encode an arbitrary sequential Boolean input assignment.
+
+    Unlike encode_sequential_trace, this helper intentionally permits invalid
+    vectors such as two simultaneously active symbol inputs.  It is used by
+    protocol-regression tests to check that the generated AIGER rejects them.
+    """
+    unknown_inputs = active_inputs - set(input_names)
+
+    if unknown_inputs:
+        raise ValueError(
+            f"Unknown active sequential inputs: {sorted(unknown_inputs)}"
+        )
+
+    return "".join(
+        "1" if name in active_inputs else "0"
+        for name in input_names
+    )

@@ -20,6 +20,7 @@ from aigsim_test_utils import (
     encode_bounded_candidate,
     parse_bounded_aigsim_outputs,
     encode_sequential_trace,
+    encode_sequential_assignment,
     parse_final_sequential_aigsim_output,
 )
 
@@ -196,6 +197,50 @@ def run_sequential_product_aigsim_case(
         )
 
 
+
+def test_aigsim_product_sequential_rejects_two_active_symbols() -> None:
+    """The product backend must reject vectors that are not characters."""
+    aigsim = require_aigsim()
+    output_dir = Path("outputs")
+    output_dir.mkdir(exist_ok=True)
+
+    pattern = "(a|b)*&(a|b)*"
+    aag_text = compile_sequential_product_aiger(pattern)
+    aag_path = output_dir / "test_aigsim_product_invalid_two_symbols.aag"
+    stim_path = output_dir / "test_aigsim_product_invalid_two_symbols.stim"
+    aag_path.write_text(aag_text, encoding="utf-8")
+
+    input_names = parse_aiger_input_names(aag_text)
+    vectors = [
+        encode_sequential_assignment({"is_a", "is_b"}, input_names),
+        encode_sequential_assignment({"end"}, input_names),
+    ]
+    stim_path.write_text("\n".join(vectors) + "\n.\n", encoding="utf-8")
+
+    result = subprocess.run(
+        [aigsim, str(aag_path), str(stim_path)],
+        check=False,
+        text=True,
+        capture_output=True,
+    )
+
+    if result.returncode != 0:
+        raise AssertionError(
+            "aigsim failed for product protocol-regression case\n"
+            f"input names: {input_names}\n"
+            f"vectors: {vectors}\n"
+            f"stdout:\n{result.stdout}\n"
+            f"stderr:\n{result.stderr}"
+        )
+
+    actual = parse_final_sequential_aigsim_output(result.stdout)
+    assert actual == 0, (
+        "product sequential AIGER accepted an invalid multi-symbol vector\n"
+        f"input names: {input_names}\n"
+        f"vectors: {vectors}\n"
+        f"stdout:\n{result.stdout}"
+    )
+
 # ---------------------------------------------------------------------------
 # Product strategy tests
 # ---------------------------------------------------------------------------
@@ -247,6 +292,7 @@ def test_aigsim_product_sequential_disjoint_except_empty() -> None:
 
 
 def run_tests() -> None:
+    test_aigsim_product_sequential_rejects_two_active_symbols()
     test_aigsim_product_bounded_a_or_b_star_and_a_star()
     test_aigsim_product_sequential_a_or_b_star_and_a_star()
     test_aigsim_product_bounded_ab_star_and_a_or_b_star()
