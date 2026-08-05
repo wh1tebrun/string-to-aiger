@@ -5,6 +5,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
 IMAGE="${RIC3_IMAGE:-gipsyh/ric3:1.6}"
+RIC3_RUNNER="$ROOT/validation/ric3_result.py"
 mkdir -p outputs
 
 check_case() {
@@ -12,6 +13,11 @@ check_case() {
     local pattern="$2"
     local expected="$3"
     local model="outputs/${name}.aag"
+    local stdout_log="outputs/${name}.ric3.stdout.log"
+    local stderr_log="outputs/${name}.ric3.stderr.log"
+    local result_file="outputs/${name}.ric3.result"
+    local ric3_status
+    local actual
 
     echo
     echo "============================================================"
@@ -26,21 +32,24 @@ check_case() {
         --output "$model"
 
     set +e
-    output="$(
+    python3 "$RIC3_RUNNER" \
+        --stdout-log "$stdout_log" \
+        --stderr-log "$stderr_log" \
+        --result-file "$result_file" \
+        -- \
         docker run --rm \
             -v "$ROOT/$model:/model.aag:ro" \
             "$IMAGE" \
-            check /model.aag ic3 2>&1
-    )"
+            check --witness /model.aag ic3
     ric3_status=$?
     set -e
 
-    printf '%s\n' "$output"
+    if [[ "$ric3_status" -ne 0 ]]; then
+        echo "FAIL: rIC3 command or result parsing exited with status $ric3_status"
+        exit "$ric3_status"
+    fi
 
-    actual="$(
-        printf '%s\n' "$output" |
-        awk '/^(SAT|UNSAT)$/ { result=$0 } END { print result }'
-    )"
+    actual="$(<"$result_file")"
 
     if [[ "$actual" != "$expected" ]]; then
         echo "FAIL: expected $expected, received ${actual:-no result}"

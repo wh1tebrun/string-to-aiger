@@ -12,6 +12,8 @@ outputs/*.aag
 
 # Generated aigsim stimulus files
 outputs/*.stim
+outputs/*.ric3.*.log
+outputs/*.ric3.result
 
 # Generated meeting demo outputs
 outputs/meeting_demo_logs/
