@@ -2,9 +2,13 @@ from __future__ import annotations
 
 import csv
 import os
+import re
+import shlex
 import subprocess
 import sys
+from dataclasses import dataclass
 from pathlib import Path
+from typing import Sequence
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -25,15 +29,31 @@ STIMULUS_DIR = ARTIFACT_ROOT / "stimuli"
 OUTPUT_DIR = ARTIFACT_ROOT / "outputs"
 
 
+@dataclass(frozen=True)
+class AigsimExecution:
+    command: tuple[str, ...]
+    exit_code: int
+    stdout: str
+    stderr: str
+    actual_output: str
+    execution_valid: bool
+    execution_error: str
+
+
+def write_lf_text(path: Path, content: str) -> None:
+    with path.open("w", encoding="utf-8", newline="\n") as file:
+        file.write(content)
+
+
 def ensure_dirs() -> None:
     for directory in [AIGER_DIR, STIMULUS_DIR, OUTPUT_DIR]:
         directory.mkdir(parents=True, exist_ok=True)
 
 
 def require_tools() -> None:
-    if not AIGSIM.exists():
+    if not AIGSIM.is_file() or not os.access(AIGSIM, os.X_OK):
         raise AssertionError(
-            "aigsim not found. Set AIGSIM explicitly, for example:\n"
+            "aigsim not found or not executable. Set AIGSIM explicitly, for example:\n"
             "export AIGSIM=/path/to/aiger/aigsim"
         )
 
@@ -116,7 +136,7 @@ def make_bounded_stimulus(aag_text: str, word: str) -> str:
         else:
             bits.append("0")
 
-    return "".join(bits) + "\n"
+    return "".join(bits) + "\n.\n"
 
 
 def make_sequential_stimulus(aag_text: str, word: str) -> str:
@@ -143,59 +163,198 @@ def make_sequential_stimulus(aag_text: str, word: str) -> str:
     final_bits = ["1" if symbol == "end" else "0" for symbol in inputs]
     lines.append("".join(final_bits))
 
-    return "\n".join(lines) + "\n"
+    return "\n".join([*lines, "."]) + "\n"
 
 
-def run_aigsim(aag_path: Path, stimulus_path: Path) -> tuple[str, str, str]:
-    stimulus = stimulus_path.read_text(encoding="utf-8")
+def read_stimulus(path: Path, num_inputs: int) -> tuple[str, list[str]]:
+    stimulus_bytes = path.read_bytes()
+
+    if b"\r" in stimulus_bytes:
+        raise AssertionError(f"Stimulus contains a carriage return: {path}")
+
+    try:
+        stimulus = stimulus_bytes.decode("utf-8")
+    except UnicodeDecodeError as error:
+        raise AssertionError(f"Stimulus is not valid UTF-8: {path}") from error
+
+    if not stimulus.endswith(".\n"):
+        raise AssertionError(
+            f"Stimulus must end with a standalone '.' line and one LF: {path}"
+        )
+
+    lines = stimulus[:-1].split("\n")
+
+    if lines.count(".") != 1 or lines[-1] != ".":
+        raise AssertionError(f"Stimulus must contain exactly one final terminator: {path}")
+
+    vectors = lines[:-1]
+
+    if not vectors:
+        raise AssertionError(f"Stimulus contains no semantic input vectors: {path}")
+
+    for vector in vectors:
+        if len(vector) != num_inputs or re.fullmatch(r"[01]+", vector) is None:
+            raise AssertionError(
+                f"Malformed {num_inputs}-bit stimulus vector {vector!r}: {path}"
+            )
+
+    return stimulus, vectors
+
+
+def parse_aigsim_output(
+    stdout: str,
+    vectors: list[str],
+    num_inputs: int,
+    num_latches: int,
+) -> str:
+    if "\r" in stdout:
+        raise ValueError("aigsim stdout contains a carriage return")
+
+    semantic_lines: list[str] = []
+    witness_seen = False
+
+    for raw_line in stdout.splitlines():
+        line = raw_line.strip()
+
+        if not line:
+            continue
+
+        if re.fullmatch(r"Trace is a witness for: \{[^}]*\}", line):
+            if witness_seen:
+                raise ValueError("aigsim stdout contains duplicate witness summaries")
+            witness_seen = True
+            continue
+
+        if witness_seen:
+            raise ValueError("aigsim stdout contains output after its witness summary")
+
+        semantic_lines.append(line)
+
+    if len(semantic_lines) != len(vectors):
+        raise ValueError(
+            "aigsim output-line count does not match stimulus vectors: "
+            f"expected {len(vectors)}, got {len(semantic_lines)}"
+        )
+
+    outputs: list[str] = []
+
+    for index, (line, vector) in enumerate(zip(semantic_lines, vectors), start=1):
+        parts = line.split()
+
+        if num_latches > 0:
+            valid = (
+                len(parts) == 4
+                and len(parts[0]) == num_latches
+                and re.fullmatch(r"[01]+", parts[0]) is not None
+                and parts[1] == vector
+                and len(parts[1]) == num_inputs
+                and parts[2] in {"0", "1"}
+                and len(parts[3]) == num_latches
+                and re.fullmatch(r"[01]+", parts[3]) is not None
+            )
+            output_index = 2
+        else:
+            valid = (
+                len(parts) == 2
+                and parts[0] == vector
+                and len(parts[0]) == num_inputs
+                and parts[1] in {"0", "1"}
+            )
+            output_index = 1
+
+        if not valid:
+            raise ValueError(f"malformed or conflicting aigsim output line {index}: {line!r}")
+
+        outputs.append(parts[output_index])
+
+    return outputs[-1]
+
+
+def run_aigsim(
+    aag_path: Path,
+    stimulus_path: Path,
+    command_prefix: Sequence[str] | None = None,
+) -> AigsimExecution:
     aag_text = aag_path.read_text(encoding="utf-8")
-    _max_var, _num_inputs, num_latches, _num_outputs, _num_ands = (
+    _max_var, num_inputs, num_latches, num_outputs, _num_ands = (
         parse_aiger_header(aag_text)
     )
 
+    if num_outputs != 1:
+        raise AssertionError(f"Manual check requires exactly one AIGER output: {aag_path}")
+
+    stimulus, vectors = read_stimulus(stimulus_path, num_inputs)
+    prefix = list(command_prefix) if command_prefix is not None else [str(AIGSIM)]
+    command = tuple([*prefix, artifact_relative(aag_path)])
+
     result = subprocess.run(
-        [str(AIGSIM), str(aag_path)],
+        list(command),
+        cwd=ROOT,
         input=stimulus,
         text=True,
         capture_output=True,
         check=False,
     )
 
-    stdout = result.stdout
-    stderr = result.stderr
-    output_lines = [line for line in stdout.splitlines() if line.strip()]
+    errors: list[str] = []
 
-    if not output_lines:
+    if result.returncode != 0:
+        errors.append(f"aigsim exited with status {result.returncode}")
+
+    if result.stderr:
+        errors.append("aigsim stderr was not empty")
+
+    try:
+        actual_output = parse_aigsim_output(
+            result.stdout,
+            vectors,
+            num_inputs,
+            num_latches,
+        )
+    except ValueError as error:
         actual_output = ""
-    else:
-        last_parts = output_lines[-1].split()
+        errors.append(str(error))
 
-        if num_latches > 0 and len(last_parts) >= 3:
-            actual_output = last_parts[2]
-        else:
-            actual_output = last_parts[-1]
-
-    return actual_output, stdout, stderr
+    return AigsimExecution(
+        command=command,
+        exit_code=result.returncode,
+        stdout=result.stdout,
+        stderr=result.stderr,
+        actual_output=actual_output,
+        execution_valid=not errors,
+        execution_error="; ".join(errors),
+    )
 
 
 def write_output_file(
     path: Path,
     command: str,
     stimulus: str,
-    stdout: str,
-    stderr: str,
+    execution: AigsimExecution,
+    expected_semantic_output: str,
+    matches_expected_semantics: str,
+    mismatch_detected: str,
+    verdict: str,
     note: str,
 ) -> None:
     content = (
         f"# {path.name}\n\n"
         f"Command:\n{command}\n\n"
+        f"Exit code:\n{execution.exit_code}\n\n"
+        f"Execution valid:\n{'YES' if execution.execution_valid else 'NO'}\n\n"
+        f"Execution error:\n{execution.execution_error}\n\n"
         f"Stimulus:\n{stimulus}\n"
-        f"stdout:\n{stdout}\n"
-        f"stderr:\n{stderr}\n"
+        f"stdout:\n{execution.stdout}\n"
+        f"stderr:\n{execution.stderr}\n"
+        f"Expected semantic output:\n{expected_semantic_output}\n\n"
+        f"Actual output:\n{execution.actual_output}\n\n"
+        f"Matches expected semantics:\n{matches_expected_semantics}\n\n"
+        f"Mismatch detected:\n{mismatch_detected}\n\n"
+        f"Final verdict:\n{verdict}\n\n"
         f"Note:\n{note}\n"
     )
 
-    path.write_text(content, encoding="utf-8")
+    write_lf_text(path, content)
 
 
 def artifact_relative(path: Path) -> str:
@@ -233,6 +392,36 @@ def make_markdown_table(headers: list[str], rows: list[dict[str, object]]) -> st
     return "\n".join(lines) + "\n"
 
 
+def evaluate_execution(
+    execution: AigsimExecution,
+    expected_semantic_output: str,
+    should_match_semantics: bool,
+) -> tuple[str, str, str]:
+    if expected_semantic_output not in {"0", "1"}:
+        raise AssertionError(
+            f"Expected semantic output must be Boolean: {expected_semantic_output!r}"
+        )
+
+    if not should_match_semantics and expected_semantic_output != "1":
+        raise AssertionError(
+            "Negative controls require a reference-semantics accepting witness"
+        )
+
+    if not execution.execution_valid:
+        return "N/A", "NO", "EXECUTION FAILED"
+
+    matches_expected = execution.actual_output == expected_semantic_output
+    matches_text = "YES" if matches_expected else "NO"
+    mismatch_text = "NO" if matches_expected else "YES"
+
+    if should_match_semantics:
+        verdict = "OK" if matches_expected else "UNEXPECTED"
+    else:
+        verdict = "UNEXPECTED" if matches_expected else "MISMATCH DETECTED"
+
+    return matches_text, mismatch_text, verdict
+
+
 def generate_bounded_files() -> tuple[Path, Path, dict[str, Path]]:
     correct_aag = compile_regex_to_aiger("ab|bc", 2)
 
@@ -247,14 +436,8 @@ def generate_bounded_files() -> tuple[Path, Path, dict[str, Path]]:
         "reject_ac": STIMULUS_DIR / "bounded_reject_ac.stim",
     }
 
-    stimuli["accept_ab"].write_text(
-        make_bounded_stimulus(correct_aag, "ab"),
-        encoding="utf-8",
-    )
-    stimuli["reject_ac"].write_text(
-        make_bounded_stimulus(correct_aag, "ac"),
-        encoding="utf-8",
-    )
+    write_lf_text(stimuli["accept_ab"], make_bounded_stimulus(correct_aag, "ab"))
+    write_lf_text(stimuli["reject_ac"], make_bounded_stimulus(correct_aag, "ac"))
 
     return correct_path, corrupted_path, stimuli
 
@@ -286,10 +469,7 @@ def generate_sequential_files() -> tuple[Path, Path, dict[str, Path]]:
     }
 
     for name, word in words.items():
-        stimuli[name].write_text(
-            make_sequential_stimulus(correct_aag, word),
-            encoding="utf-8",
-        )
+        write_lf_text(stimuli[name], make_sequential_stimulus(correct_aag, word))
 
     return correct_path, corrupted_path, stimuli
 
@@ -304,20 +484,18 @@ def run_case(
     word_or_trace: str,
     expected_semantic_output: str,
     should_match_semantics: bool,
+    command_prefix: Sequence[str] | None = None,
 ) -> dict[str, object]:
+    execution = run_aigsim(aag_path, stimulus_path, command_prefix)
     command = (
-        f"$AIGSIM {artifact_relative(aag_path)} "
-        f"< {artifact_relative(stimulus_path)}"
+        f"$AIGSIM {shlex.quote(artifact_relative(aag_path))} "
+        f"< {shlex.quote(artifact_relative(stimulus_path))}"
     )
-
-    actual_output, stdout, stderr = run_aigsim(aag_path, stimulus_path)
-    matches_expected = actual_output == expected_semantic_output
-    mismatch_detected = not matches_expected
-
-    if should_match_semantics:
-        verdict = "OK" if matches_expected else "UNEXPECTED"
-    else:
-        verdict = "MISMATCH DETECTED" if mismatch_detected else "UNEXPECTED"
+    matches_expected, mismatch_detected, verdict = evaluate_execution(
+        execution,
+        expected_semantic_output,
+        should_match_semantics,
+    )
 
     output_path = OUTPUT_DIR / f"{case_id}_aigsim_output.txt"
     note = (
@@ -329,8 +507,11 @@ def run_case(
         output_path,
         command,
         stimulus_path.read_text(encoding="utf-8"),
-        stdout,
-        stderr,
+        execution,
+        expected_semantic_output,
+        matches_expected,
+        mismatch_detected,
+        verdict,
         note,
     )
 
@@ -342,10 +523,14 @@ def run_case(
         "aag_file": artifact_relative(aag_path),
         "stimulus_file": artifact_relative(stimulus_path),
         "word_or_trace": word_or_trace,
+        "aigsim_exit_code": execution.exit_code,
+        "execution_valid": "YES" if execution.execution_valid else "NO",
+        "stderr_empty": "YES" if not execution.stderr else "NO",
+        "execution_error": execution.execution_error,
         "expected_semantic_output": expected_semantic_output,
-        "aigsim_actual_output": actual_output,
-        "matches_expected_semantics": "YES" if matches_expected else "NO",
-        "mismatch_detected": "YES" if mismatch_detected else "NO",
+        "aigsim_actual_output": execution.actual_output,
+        "matches_expected_semantics": matches_expected,
+        "mismatch_detected": mismatch_detected,
         "verdict": verdict,
         "manual_command": command,
         "captured_output_file": artifact_relative(output_path),
@@ -551,6 +736,10 @@ def main() -> None:
         "aag_file",
         "stimulus_file",
         "word_or_trace",
+        "aigsim_exit_code",
+        "execution_valid",
+        "stderr_empty",
+        "execution_error",
         "expected_semantic_output",
         "aigsim_actual_output",
         "matches_expected_semantics",
@@ -565,6 +754,9 @@ def main() -> None:
         "backend",
         "pattern",
         "word_or_trace",
+        "aigsim_exit_code",
+        "execution_valid",
+        "stderr_empty",
         "expected_semantic_output",
         "aigsim_actual_output",
         "matches_expected_semantics",
@@ -581,10 +773,11 @@ def main() -> None:
     )
     write_readme()
 
-    unexpected_rows = [row for row in rows if row["verdict"] == "UNEXPECTED"]
+    passing_verdicts = {"OK", "MISMATCH DETECTED"}
+    failed_rows = [row for row in rows if row["verdict"] not in passing_verdicts]
 
-    if unexpected_rows:
-        raise AssertionError(f"Unexpected manual aigsim results: {unexpected_rows}")
+    if failed_rows:
+        raise AssertionError(f"Failed manual aigsim results: {failed_rows}")
 
     print(f"Wrote manual aigsim checks to: {ARTIFACT_ROOT}")
     print(f"Rows: {len(rows)}")
@@ -593,6 +786,8 @@ def main() -> None:
         print(
             f"{row['case_id']}: expected={row['expected_semantic_output']} "
             f"actual={row['aigsim_actual_output']} "
+            f"exit={row['aigsim_exit_code']} "
+            f"execution_valid={row['execution_valid']} "
             f"matches={row['matches_expected_semantics']} "
             f"verdict={row['verdict']}"
         )

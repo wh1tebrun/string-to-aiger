@@ -20,6 +20,7 @@ TEST_COMMANDS = [
     ["tests/tests_nfa_optimize.py"],
     ["tests/tests_aiger_validator.py"],
     ["tests/tests_aiger_pipeline.py"],
+    ["tests/tests_manual_aigsim_checks.py"],
     ["tests/tests_external_aiger_validator.py"],
     ["tests/tests_ric3_result.py"],
     ["tests/tests_shell_line_endings.py"],

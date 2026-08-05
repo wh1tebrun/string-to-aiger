@@ -3,14 +3,39 @@
 Command:
 $AIGSIM artifacts/manual_aigsim_checks/aiger/bounded_ab_or_bc_correct.aag < artifacts/manual_aigsim_checks/stimuli/bounded_accept_ab.stim
 
+Exit code:
+0
+
+Execution valid:
+YES
+
+Execution error:
+
+
 Stimulus:
 11100
+.
 
 stdout:
  11100 1 
+Trace is a witness for: { b0 }
 
 stderr:
-*** [aigsim] line 2: pos 1: expected '0' or '1'
+
+Expected semantic output:
+1
+
+Actual output:
+1
+
+Matches expected semantics:
+YES
+
+Mismatch detected:
+NO
+
+Final verdict:
+OK
 
 Note:
 This is a direct manual aigsim check. For deliberately corrupted AIGERs, a mismatch is expected and useful.
