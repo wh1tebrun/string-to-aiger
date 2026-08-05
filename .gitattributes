@@ -1,2 +1,5 @@
 # Auto detect text files and perform LF normalization
 * text=auto
+
+# Keep Bash/WSL/Docker entry scripts executable after Windows checkouts.
+*.sh text eol=lf
