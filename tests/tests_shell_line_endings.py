@@ -33,9 +33,17 @@ def test_gitattributes_enforces_lf_for_shell_scripts() -> None:
     assert "*.sh text eol=lf" in attributes.splitlines()
 
 
+def test_gitattributes_enforces_lf_for_aiger_inputs() -> None:
+    attributes = (ROOT_DIR / ".gitattributes").read_text(encoding="utf-8")
+    lines = attributes.splitlines()
+    assert "*.aag text eol=lf" in lines
+    assert "*.stim text eol=lf" in lines
+
+
 def run_tests() -> None:
     test_shell_scripts_use_lf_line_endings()
     test_gitattributes_enforces_lf_for_shell_scripts()
+    test_gitattributes_enforces_lf_for_aiger_inputs()
     print("All shell line-ending tests passed.")
 
 

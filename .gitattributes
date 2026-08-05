@@ -3,3 +3,7 @@
 
 # Keep Bash/WSL/Docker entry scripts executable after Windows checkouts.
 *.sh text eol=lf
+
+# AIGER tools require LF in line-oriented models and stimuli.
+*.aag text eol=lf
+*.stim text eol=lf
