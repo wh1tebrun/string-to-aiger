@@ -1,31 +1,38 @@
-# Validation and model-checking artifacts
+# Validation and Model-Checking Artifacts
 
-This directory contains the generated validation artifacts for the string-to-AIGER compiler.
+This is the authoritative index for committed validation evidence. The artifacts make generated AIGER circuits externally inspectable through concrete simulation, negative controls, constrained SAT checks, bounded sequential unrolling, and comparison with independent reference circuits.
 
-The artifacts are intended to make the generated AIGER circuits inspectable and externally checkable. They include simulation-based validation, negative detection, SAT/model-checking style counterexample extraction, sequential trace extraction, and bounded reference equivalence checks.
+## Provenance and Scope
 
-## Artifact overview
+The evidence was validated as part of the annotated baseline tag [`presentation-validation-aa072d8`](https://github.com/wh1tebrun/string-to-aiger/tree/presentation-validation-aa072d8), targeting commit `aa072d804572c128f4e905b052fb0c2184bd7b0e`. Later professionalization commits may improve documentation on a separate branch without changing compiler source behavior.
 
-| Validation goal | Artifact | Main result |
-| --- | --- | --- |
-| External semantic simulation with `aigsim` | `artifacts/validation/validation_matrix.md` | 45 validation rows comparing expected regex semantics with AIGER simulation output |
-| Negative detection on deliberately corrupted AIGERs | `artifacts/validation/negative_detection_matrix.md` | 6 negative rows where corrupted AIGERs are detected by mismatching witnesses |
-| Bounded miter/CNF/SAT counterexample extraction | `artifacts/model_checking/model_checking_counterexamples.md` | correct-vs-correct is UNSAT; correct-vs-corrupted is SAT and decodes to the witness string `'ab'` |
-| Sequential model-checking style trace extraction | `artifacts/sequential_model_checking/sequential_counterexamples.md` | sequential correct-vs-corrupted is SAT and decodes to the trace `b, c, end`, i.e. the string `'bc'` |
-| Bounded generated-vs-reference equivalence checking | `artifacts/reference_equivalence/reference_equivalence.md` | generated AIGERs are UNSAT against independent reference AIGERs for selected bounded cases; corrupted generated AIGER is SAT with decoded counterexample `'ab'` |
+The baseline contains 45 semantic-simulation rows, six negative-detection rows, two bounded miter/Minisat rows, two fixed-depth sequential-unroll/Minisat rows, four generated-vs-reference rows, and nine manual rows. These are concrete or bounded checks. They do not establish universal correctness of the executable compiler.
 
-## Reproducing the artifacts
+## Evidence Index
 
-From the repository root:
+| Directory | Generator | Artifact and question answered | Interpretation and limitation |
+| --- | --- | --- | --- |
+| [`validation/`](validation/) | [`generate_validation_artifacts.py`](../validation/generate_validation_artifacts.py) | AIGERs, stimuli, and matrices for 45 external `aigsim` comparisons plus six deliberately corrupted negative controls. Do generated artifacts agree with reference regex semantics on the recorded inputs, and can the harness detect wrong circuits? | External simulation/differential testing and negative-control evidence for selected cases; not exhaustive language equivalence. |
+| [`manual_aigsim_checks/`](manual_aigsim_checks/) | [`generate_manual_aigsim_checks.py`](../validation/generate_manual_aigsim_checks.py) | Nine small AIGER/stimulus/output rows. Can a reviewer inspect representative bounded and sequential behavior, including two corrupted controls? | Concrete external simulation. The legacy generator can omit the final `.` stimulus terminator and produce a trailing warning; the separately terminated baseline audit passed, but this path remains a documented limitation. |
+| [`model_checking/`](model_checking/) | [`generate_model_checking_artifacts.py`](../validation/generate_model_checking_artifacts.py) | Two bounded `aigmiter`/`aigtocnf`/Minisat cases with valid-input clauses. Does a correct circuit differ from itself, and can a corrupted circuit yield a decoded witness? | SAT-based bounded instance evidence: correct-vs-correct is UNSAT; correct-vs-corrupted is SAT with witness `ab`. It covers only the encoded bound and constraints. |
+| [`sequential_model_checking/`](sequential_model_checking/) | [`generate_sequential_model_checking_artifacts.py`](../validation/generate_sequential_model_checking_artifacts.py) | Two depth-3 `aigmiter`/`aigunroll`/CNF/Minisat cases for `(bc)*`. Can a bounded trace expose a corrupted sequential output? | Bounded sequential counterexample extraction: the corrupted comparison is SAT with trace `b, c, end`. It is not unbounded sequential correctness. |
+| [`reference_equivalence/`](reference_equivalence/) | [`generate_bounded_reference_equivalence_artifacts.py`](../validation/generate_bounded_reference_equivalence_artifacts.py) | Four generated-vs-independent-reference miters over valid bound-2 encodings. Is any valid bounded string a counterexample? | Constrained bounded equivalence evidence. Selected correct cases are UNSAT; a corrupted case is SAT with witness `ab`. The reference is an explicit accepted-word circuit, not the regex compiler. |
+
+The canonical rIC3 workflow is separate from these committed directories. [`run_ric3_hwmcc.sh`](../validation/run_ric3_hwmcc.sh) generates four sequential models and raw/result files under ignored `outputs/`. At the tagged baseline it produced `SAT, UNSAT, SAT, UNSAT`; those results mean `accept` is reachable or unreachable in those four transition systems, not that the compiler is universally correct.
+
+The separate [Isabelle/HOL project](https://gitlab.uni-freiburg.de/et130/regex-to-nfa-isabelle.git) supplies mathematical proof for the five-constructor Thompson core. It is not an artifact generator or a refinement proof of this Python implementation.
+
+## Reproducing the Committed Artifact Families
+
+After installing the package as shown in the root quickstart, run generators from the repository root under the documented Bash/WSL toolchain. `AIGER_TOOLS` must contain `aigmiter`, `aigtocnf`, and `aigunroll`; `minisat` must be on `PATH`; and `AIGSIM` must name the simulator executable.
 
 ```bash
 export AIGER_TOOLS=/path/to/aiger
 export AIGSIM=/path/to/aiger/aigsim
-
 python3 validation/run_all_validation_artifacts.py
 ```
 
-Or run the individual generators in order:
+The aggregate runner executes these generators in order and rewrites the corresponding tracked artifact families:
 
 ```bash
 python3 validation/generate_validation_artifacts.py
@@ -35,8 +42,37 @@ python3 validation/generate_bounded_reference_equivalence_artifacts.py
 python3 validation/generate_manual_aigsim_checks.py
 ```
 
-## Scope
+The optional canonical rIC3 workflow uses `RIC3_IMAGE` when set, otherwise `gipsyh/ric3:1.6`:
 
-These artifacts are bounded validation and model-checking style checks. They are not a full unbounded formal proof of the entire compiler.
+```bash
+bash validation/run_ric3_hwmcc.sh
+```
 
-The goal is to make the generated AIGER circuits externally inspectable and to show concrete SAT/UNSAT results, witnesses, decoded counterexamples, and trace artifacts.
+The CLI also supports the separate optional `STRING_TO_AIGER_EXTERNAL_AIGER_VALIDATOR` command. That hook checks whether a configured external command accepts a written file; it is not the semantic `AIGSIM` test suite.
+
+## Validated Environment
+
+These values are the environment recorded for the tagged validation baseline, not general minimum requirements except where stated.
+
+| Component | Recorded identity | Qualification |
+| --- | --- | --- |
+| Python requirement | 3.10 or newer | Declared by `pyproject.toml`; the package has no declared runtime dependencies. |
+| Windows Python | 3.14.2 | Recorded host interpreter; the full external gate was not claimed as native-Windows-only. |
+| WSL Ubuntu Python | 3.10.12 | Interpreter used for the recorded external validation workflow. |
+| `aigsim` | `/home/egetekin/tools/aiger/aigsim`; version not recorded | Machine-local validated executable path, not a portable pin. |
+| AIGER tools | `/home/egetekin/tools/aiger/`; version not recorded | Recorded location for `aigmiter`, `aigtocnf`, and `aigunroll`. |
+| Minisat | Ubuntu package `1:2.2.1-5build2` | Used for constrained CNF checks. |
+| Docker | client/server 29.6.1; Docker Desktop 4.82.0 | Docker Desktop supplied the validated container runtime. |
+| rIC3 image tag | `gipsyh/ric3:1.6` | A tag is mutable and is not itself a content digest. |
+| rIC3 local image ID | `sha256:1c2418ef3f727592e7b3bf3c08fad5b56ef09a98c55fcc2631cc1a66b64ef532` | Recorded local image identity; a registry repository digest was not recorded. |
+| rIC3 binary | `rIC3 1.5.2` | Version reported by the binary inside that validated image. |
+
+The image tag, local image ID, registry digest, and contained binary version are different identifiers. Future reruns should record the actual tool versions, image ID, and repository digest used rather than assuming the tag still denotes the validated image.
+
+## Platform Boundary and Interpretation
+
+Dependency-free internal Python compilation and structural validation do not require the external toolchain. The recorded `aigsim`, AIGER-tool, Minisat, and rIC3 workflows ran from the repository root under WSL Ubuntu/Bash, with Docker Desktop exposed to WSL for rIC3. Full native-Windows support for those external workflows has not been established.
+
+`.gitattributes` forces tracked `.sh`, `.aag`, and `.stim` files to LF so Bash and the line-oriented tools receive stable committed inputs after Windows checkouts. This policy does not by itself prove that every runtime-generated file on every platform has identical bytes.
+
+Simulation covers supplied traces. SAT/UNSAT results cover the encoded bounds and constraints, except the four separate rIC3 reachability instances, which are unbounded only for their generated transition systems. Structural AIGER validation proves well-formedness checks, not semantic equivalence. See the root [formal-verification scope](../README.md#formal-verification-scope) for the exact boundary between implementation evidence and mathematical proof.

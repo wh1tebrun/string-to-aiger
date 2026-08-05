@@ -45,6 +45,35 @@ deterministic fuzz testing
 cross-backend consistency testing
 ```
 
+# Five-Minute Clean-Clone Quickstart
+
+The package requires Python 3.10 or newer and declares no runtime dependencies. While this documentation is being reviewed on its professionalization branch, start from a clean clone as follows:
+
+```bash
+git clone --branch codex/professionalization https://github.com/wh1tebrun/string-to-aiger.git
+cd string-to-aiger
+python3 -m venv .venv
+. .venv/bin/activate
+python -m pip install .
+```
+
+These commands use the validated WSL/POSIX executable name `python3`. If your Python 3.10+ installation is exposed as `python`, use `python -m venv .venv` instead. On Windows PowerShell, activate that environment with `.\.venv\Scripts\Activate.ps1`. After activation, the installed console command and module form are equivalent and should expose the same interface:
+
+```bash
+string-to-aiger --help
+python -m string_to_aiger --help
+```
+
+Compile a small bounded example without writing into a tracked artifact directory:
+
+```bash
+string-to-aiger --pattern "ab|bc" --backend bounded --bound 2 --output ../string-to-aiger-smoke.aag
+```
+
+The command should exit successfully, report `AIGER validation: passed`, and write an ASCII AIGER file whose first line begins with `aag`. This validation is structural; the [bounded-input contract](#bounded-combinational-backend) and semantic evidence are described below.
+
+The package CLI is the authoritative entry point. Root `main.py` is a legacy fixed-string demonstration that reads `examples/test1.txt`; it is not the general regex CLI.
+
 # Supported Constraint Fragment
 
 # Fixed-String Disjunctions
@@ -190,6 +219,10 @@ x_1_is_a
 x_1_is_b
 ```
 
+These Boolean inputs have an external valid-word contract. A candidate word selects one `len_is_N` signal and encodes one symbol at each position within that length using `x_POSITION_is_SYMBOL` signals. Words longer than the chosen bound are outside this encoding, and inputs beyond the selected length do not extend the word. Arbitrary inconsistent Boolean valuations do not necessarily represent strings, so the bounded circuit is not claimed to be language-equivalent over the unrestricted Boolean input domain.
+
+The CLI runs internal structural AIGER validation by default before writing the file. That check covers header fields and counts, basic body-line forms, literal bounds, and basic symbol/comment syntax; it is not a complete AIGER parser or a semantic correctness proof. Simulation helpers generate valid word encodings, while the bounded SAT/miter artifacts add the documented input-validity constraints before interpreting assignments as words.
+
 This backend is useful for finite-word encodings, SAT-style checks, small examples, and debugging.
 
 # Sequential Latch-Based Backend
@@ -308,12 +341,14 @@ docs/
 demos/
 tests/
 evaluation/
+validation/
+artifacts/
 outputs/
 ```
 
 The `outputs/` directory is used for generated AIGER files and temporary simulator inputs.
 
-Generated `.aag` and `.stim` files are ignored by Git.
+New untracked `.aag` and `.stim` files directly under `outputs/` are ignored by Git. Curated, committed evidence is indexed in [`artifacts/README.md`](artifacts/README.md).
 
 # Important Components
 
@@ -372,11 +407,14 @@ string_to_aiger/sequential/product_sequential_compiler.py
 
 # Command-Line Interface
 
-The project provides a CLI through:
+The authoritative package CLI is installed as `string-to-aiger`. The equivalent module form delegates to the same `string_to_aiger.cli:main` entry point:
 
 ```bash
-python3 -m string_to_aiger
+string-to-aiger --help
+python3 -m string_to_aiger --help
 ```
+
+Root `main.py` remains a fixed-string teaching/demo program and is not the current general-purpose interface.
 
 Generate a bounded AIGER circuit:
 
@@ -737,7 +775,7 @@ This is an optional external validation step and requires Docker.
 
 ```bash
 docker pull gipsyh/ric3:1.6
-./validation/run_ric3_hwmcc.sh
+bash validation/run_ric3_hwmcc.sh
 ```
 
 The validation script generates sequential AIGER models and asks rIC3
@@ -781,6 +819,30 @@ Most behavioral checks run the generated AIGER files through an external simulat
 Therefore, the tests do not only inspect Python objects internally.
 
 They check the generated AIGER files as actual artifacts.
+
+## Evidence Map
+
+The detailed committed-evidence index is [`artifacts/README.md`](artifacts/README.md). Each category below has a deliberately limited interpretation.
+
+| Category | Evidence strength | Authoritative location and scope |
+| --- | --- | --- |
+| Internal and focused tests | Unit/integration tests | Of the baseline's 263 explicit test functions, 220 were internal or focused regression checks. [`run_all_tests.py`](run_all_tests.py) also invokes the 43 external `aigsim` functions. |
+| External `aigsim` test suite | External simulation and differential validation | The [full runner](run_all_tests.py) invokes seven `tests/tests_aigsim_*.py` scripts whose 43 functions compare generated files with reference behavior. |
+| Semantic artifact matrix | Committed external-simulation evidence | The [semantic matrix](artifacts/validation/validation_matrix.md) separately records 45 concrete `aigsim` rows; rows and test functions are different units. |
+| Deterministic fuzzing | Reproducible differential testing | The [bounded](tests/tests_aigsim_bounded_fuzzer.py) and [sequential](tests/tests_aigsim_sequential_fuzzer.py) fuzz tests use fixed seeds; passing samples are not exhaustive proof. |
+| Negative controls | Failure-sensitivity evidence | The [negative-detection matrix](artifacts/validation/negative_detection_matrix.md) records six deliberately corrupted circuits whose mismatches were detected. |
+| Bounded miter/reference checks | SAT-based bounded instance evidence | [Miter counterexamples](artifacts/model_checking/model_checking_counterexamples.md) and [independent reference equivalence](artifacts/reference_equivalence/reference_equivalence.md) constrain inputs to valid bounded encodings. |
+| Sequential checks | Bounded unrolling and protocol tests | [Sequential counterexamples](artifacts/sequential_model_checking/sequential_counterexamples.md) cover fixed-depth instances; [protocol tests](tests/tests_aigsim_sequential.py) exercise valid and invalid traces. |
+| Canonical rIC3 workflow | Selected unbounded reachability instances | [`validation/run_ric3_hwmcc.sh`](validation/run_ric3_hwmcc.sh) checks four generated transition systems. SAT/UNSAT concerns reachability of `accept`, not universal compiler correctness. |
+| Manual checks | Small inspectable external simulations | The [manual matrix](artifacts/manual_aigsim_checks/manual_aigsim_checks.md) records nine concrete checks, including corrupted-output controls. |
+| Companion Isabelle/HOL project | Mathematical proof of a separate Thompson core | The [companion development](https://gitlab.uni-freiburg.de/et130/regex-to-nfa-isabelle.git) proves the five constructor results described below, not refinement of this Python pipeline. |
+| Presentation baseline | Reproducibility/provenance marker | Tag [`presentation-validation-aa072d8`](https://github.com/wh1tebrun/string-to-aiger/tree/presentation-validation-aa072d8) identifies validated commit `aa072d804572c128f4e905b052fb0c2184bd7b0e`. |
+
+## Validated Baseline and Environment Boundary
+
+At the tagged baseline, the recorded GO gate comprised 263 explicit test functions in 27 scripts, including 43 external `aigsim` tests; a separate 11-case sequential-protocol audit; the committed validation/SAT evidence; four canonical rIC3 cases with results `SAT, UNSAT, SAT, UNSAT`; and two clean-clone demo rehearsals. These counts describe the tagged baseline. The later `codex/professionalization` commits are documentation-only and have not rerun that complete external GO gate; compiler source behavior is unchanged.
+
+The core package requires Python 3.10+ and uses only the standard library at runtime. The recorded external gate ran under WSL Ubuntu with Python 3.10.12 and additionally used Bash, AIGER tools/`aigsim`, Minisat, Docker Desktop, and rIC3. Tracked `.sh`, `.aag`, and `.stim` files are forced to LF by `.gitattributes`; full native-Windows support for the external toolchain is not claimed. Exact recorded versions and provenance limitations are in the [artifact index](artifacts/README.md#validated-environment).
 
 # Formal Verification Scope
 
