@@ -782,13 +782,29 @@ Therefore, the tests do not only inspect Python objects internally.
 
 They check the generated AIGER files as actual artifacts.
 
-# What Is Not Proved
+# Formal Verification Scope
 
-The project does not provide a formal correctness proof.
+The companion [Isabelle/HOL development](https://gitlab.uni-freiburg.de/et130/regex-to-nfa-isabelle.git) proves language equivalence, within its mathematical model, between Thompson-style epsilon-NFA constructions and inductive regular-expression semantics for:
 
-It does not prove that the compiler is correct for every possible regex and every possible input word.
+- epsilon;
+- individual characters;
+- concatenation;
+- union;
+- Kleene star.
 
-The validation combines testing, external simulation, and targeted unbounded reachability proofs for selected sequential models.
+These constructions closely correspond to the non-intersection Thompson core used by this Python prototype. The correspondence between the repositories is a manually audited structural correspondence, not a machine-checked refinement of the Python source.
+
+The Isabelle development does not formally verify:
+
+- Python parser correctness or surface-syntax desugaring;
+- intersection or product automata;
+- the bounded Boolean encoding;
+- the sequential latch encoding or input-protocol guard;
+- netlist lowering or AIGER serialization;
+- external `aigsim` simulation, SAT, or rIC3 workflows;
+- the complete executable regex-to-AIGER pipeline.
+
+The executable pipeline is instead supported by empirical validation: testing, external simulation, and targeted unbounded reachability checks for selected sequential models.
 
 However, it is end-to-end and external:
 
@@ -812,7 +828,7 @@ the regex parser does not implement full PCRE/Python regex syntax
 unsupported features include lookaround, anchors, lazy quantifiers, dot wildcard, predefined classes, and negated classes
 the project does not perform unbounded language equivalence checking
 rIC3 validation is optional, requires Docker, and is not part of the default test suite
-the project does not provide a formal proof of compiler correctness
+the complete executable regex-to-AIGER pipeline is not formally verified
 ```
 
 # Future Work
@@ -827,7 +843,7 @@ additional cross-backend checks
 broader SAT/model-checking integration and automated witness extraction
 DFA construction and minimization
 AIGER optimization
-Isabelle/HOL formalization of regex and NFA semantics
+machine-checked refinement from the Isabelle model to the Python implementation
 formal correctness proof for product automata
 formal correctness proof for bounded Boolean encoding
 formalization of an abstract AIG circuit semantics
