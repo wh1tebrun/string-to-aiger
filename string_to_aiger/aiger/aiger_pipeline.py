@@ -9,7 +9,7 @@ def write_text(path: str, text: str) -> None:
     if output_dir:
         os.makedirs(output_dir, exist_ok=True)
 
-    with open(path, "w", encoding="utf-8") as f:
+    with open(path, "w", encoding="utf-8", newline="\n") as f:
         f.write(text)
 
 

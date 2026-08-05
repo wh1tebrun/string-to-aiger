@@ -15,6 +15,17 @@ def compile_sample_aiger() -> str:
     return compile_expr_to_aiger(expr)
 
 
+def assert_lf_bytes(path: str, expected_text: str) -> None:
+    with open(path, "rb") as f:
+        written = f.read()
+
+    assert written == expected_text.encode("utf-8")
+    assert b"\r" not in written
+    assert b"\n" in written
+    assert written.endswith(b"\n")
+    assert not written.endswith(b"\n\n")
+
+
 def test_validate_and_write_aiger_writes_valid_file():
     with tempfile.TemporaryDirectory() as temp_dir:
         output_path = os.path.join(temp_dir, "valid.aag")
@@ -29,6 +40,16 @@ def test_validate_and_write_aiger_writes_valid_file():
             written = f.read()
 
         assert written == aiger_text
+
+
+def test_validate_and_write_aiger_writes_lf_bytes():
+    with tempfile.TemporaryDirectory() as temp_dir:
+        output_path = os.path.join(temp_dir, "valid_lf.aag")
+        aiger_text = compile_sample_aiger()
+
+        validate_and_write_aiger(output_path, aiger_text)
+
+        assert_lf_bytes(output_path, aiger_text)
 
 
 def test_validate_and_write_aiger_creates_parent_directory():
@@ -69,11 +90,23 @@ def test_write_aiger_without_validation_allows_raw_text():
         assert written == raw_text
 
 
+def test_write_aiger_without_validation_writes_lf_bytes():
+    with tempfile.TemporaryDirectory() as temp_dir:
+        output_path = os.path.join(temp_dir, "raw_lf.aag")
+        raw_text = "not a valid aiger\nsecond line\n"
+
+        write_aiger_without_validation(output_path, raw_text)
+
+        assert_lf_bytes(output_path, raw_text)
+
+
 def run_tests():
     test_validate_and_write_aiger_writes_valid_file()
+    test_validate_and_write_aiger_writes_lf_bytes()
     test_validate_and_write_aiger_creates_parent_directory()
     test_validate_and_write_aiger_rejects_invalid_text()
     test_write_aiger_without_validation_allows_raw_text()
+    test_write_aiger_without_validation_writes_lf_bytes()
 
     print("All AIGER pipeline tests passed.")
 
