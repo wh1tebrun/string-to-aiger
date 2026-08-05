@@ -1,0 +1,59 @@
+name: Internal tests
+
+"on":
+  push:
+    branches:
+      - main
+      - codex/professionalization
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  internal-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version:
+          - "3.10"
+          - "3.12"
+    env:
+      PYTHONDONTWRITEBYTECODE: "1"
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Display Python version
+        run: python --version
+
+      - name: Install package
+        run: python -m pip install --no-deps .
+
+      - name: Check installed console CLI
+        working-directory: ${{ runner.temp }}
+        shell: bash
+        run: |
+          string-to-aiger --help > console-help.txt
+          cat console-help.txt
+
+      - name: Check installed module CLI
+        working-directory: ${{ runner.temp }}
+        shell: bash
+        run: |
+          python -m string_to_aiger --help > module-help.txt
+          cat module-help.txt
+
+      - name: Compare CLI interfaces
+        working-directory: ${{ runner.temp }}
+        run: cmp console-help.txt module-help.txt
+
+      - name: Run internal tests
+        run: python run_all_tests.py --internal-only
