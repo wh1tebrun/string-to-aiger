@@ -198,7 +198,7 @@ Run the validation set from WSL or another Bash environment:
 
 ```bash
 docker pull gipsyh/ric3:1.6
-./validation/run_ric3_hwmcc.sh
+bash validation/run_ric3_hwmcc.sh
 ```
 
 The script checks the following cases:
