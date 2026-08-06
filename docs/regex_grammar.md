@@ -13,7 +13,7 @@ The currently supported operators are:
 | Operator | Meaning | Example |
 |---|---|---|
 | concatenation | sequence of expressions | `ab` |
-| `|` | union / alternation | `a|b` |
+| `\|` | union / alternation | `a\|b` |
 | `&` | conjunction / intersection | `a*&b*` |
 | `*` | zero or more repetitions | `a*` |
 | `+` | one or more repetitions | `a+` |

@@ -207,8 +207,8 @@ The script checks the following cases:
 | --- | --- |
 | `ab` | `SAT` |
 | `b&c` | `UNSAT` |
-| `(ab|ba)*&(aa|bb)*` | `SAT` |
-| `((ab|ba)(ab|ba)*)&((aa|bb)(aa|bb)*)` | `UNSAT` |
+| `(ab\|ba)*&(aa\|bb)*` | `SAT` |
+| `((ab\|ba)(ab\|ba)*)&((aa\|bb)(aa\|bb)*)` | `UNSAT` |
 
 `SAT` means that an accepting output is reachable. `UNSAT` means that IC3
 proved the accepting output unreachable.

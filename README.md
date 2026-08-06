@@ -802,8 +802,8 @@ whether the accepting output is reachable.
 | --- | --- | --- |
 | `ab` | `SAT` | An accepting trace exists. |
 | `b&c` | `UNSAT` | No valid trace can satisfy both expressions. |
-| `(ab|ba)*&(aa|bb)*` | `SAT` | Both starred expressions accept the empty word. |
-| `((ab|ba)(ab|ba)*)&((aa|bb)(aa|bb)*)` | `UNSAT` | Removing epsilon produces an empty intersection. |
+| `(ab\|ba)*&(aa\|bb)*` | `SAT` | Both starred expressions accept the empty word. |
+| `((ab\|ba)(ab\|ba)*)&((aa\|bb)(aa\|bb)*)` | `UNSAT` | Removing epsilon produces an empty intersection. |
 
 For these checks:
 
