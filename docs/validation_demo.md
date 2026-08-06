@@ -7,7 +7,7 @@ The main point is:
 ```text
 The project does not only generate AIGER files.
 It simulates the generated AIGER files with aigsim
-and compares the observed circuit behavior against reference r```x semantics.
+and compares the observed circuit behavior against reference regex semantics.
 ```
 
 # 1. Motivation
@@ -19,7 +19,7 @@ However, this alone is not enough.
 The important question is:
 
 ```text
-Does the generated AIGER circuit actually implement the intended r```x language?
+Does the generated AIGER circuit actually implement the intended regex language?
 ```
 
 Therefore, external semantic validation was added.
@@ -29,12 +29,12 @@ Therefore, external semantic validation was added.
 The validation pipeline is:
 
 ```text
-r```x pattern
+regex pattern
 -> compiler
 -> generated ASCII AIGER
 -> aigsim external simulation
 -> observed accept/reject output
--> reference r```x semantics
+-> reference regex semantics
 -> comparison
 ```
 
@@ -56,10 +56,10 @@ intersection handling
 
 The external semantic tests require `aigsim`.
 
-In my WSL setup:
+Configure the simulator path, for example:
 
 ```bash
-export AIGSIM=/home/```tekin/tools/aiger/aigsim
+export AIGSIM=/path/to/aiger/aigsim
 ```
 
 The tests intentionally fail if `AIGSIM` is not configured.
@@ -143,7 +143,7 @@ The project includes deterministic fuzzing.
 
 The bounded fuzzer uses multiple bounds and a three-symbol alphabet.
 
-The sequential fuzzer generates small random r```xes and checks the resulting latch-based AIGER circuits.
+The sequential fuzzer generates small random regexes and checks the resulting latch-based AIGER circuits.
 
 Run the fuzzers:
 
@@ -199,14 +199,24 @@ python3 tests/tests_aigsim_negative_detection.py
 
 This shows that the validation infrastructure can actually detect wrong circuit behavior.
 
+The [manual matrix](../artifacts/manual_aigsim_checks/manual_aigsim_checks.md) records nine fail-closed checks: seven expected matches and two detected negative-control mismatches, all with simulator exit 0 and empty stderr. Each stimulus ends with a final `.` line and LF, and a negative control counts as a successful detection only after clean simulator execution.
+
 # 10. Full Test Suite
 
 Run all tests:
 
 ```bash
-export AIGSIM=/home/```tekin/tools/aiger/aigsim
+export AIGSIM=/path/to/aiger/aigsim
 python3 run_all_tests.py
 ```
+
+For the CI profile, which does not require real `aigsim`:
+
+```bash
+python3 run_all_tests.py --internal-only
+```
+
+The current full profile reports 29 scripts and 288 explicit test functions. The internal profile reports 22 scripts and 245 functions; it still requires Bash for the manual fake-simulator regression. The [internal workflow](../.github/workflows/internal-tests.yml) runs this profile on Ubuntu with Python 3.10 and 3.12, while the real external-tool checks remain part of the provisioned full release gate.
 
 Expected result:
 
@@ -221,7 +231,7 @@ For the tested cases, the project checks:
 ```text
 generated AIGER circuit output
 =
-expected r```x accept/reject result
+expected regex accept/reject result
 ```
 
 This is done by simulating the generated AIGER file externally with `aigsim`.
@@ -234,14 +244,14 @@ It checks the generated AIGER artifact itself.
 
 This is not a formal correctness proof.
 
-It does not prove correctness for all possible r```xes and all possible inputs.
+It does not prove correctness for all possible regexes and all possible inputs.
 
 The current validation is testing-based and simulation-based.
 
 However, it is end-to-end and external:
 
 ```text
-r```x
+regex
 -> generated AIGER
 -> aigsim
 -> observed behavior
@@ -255,7 +265,7 @@ The concise explanation is:
 
 ```text
 After generating AIGER files, I added external semantic validation with aigsim.
-The tests compile r```xes to AIGER, simulate the generated AIGER files, and compare the outputs against reference r```x semantics.
+The tests compile regexes to AIGER, simulate the generated AIGER files, and compare the outputs against reference regex semantics.
 
 This is done for bounded circuits, sequential latch-based circuits, product automata, deterministic fuzz-generated cases, cross-backend consistency cases, and deliberately corrupted AIGER files.
 

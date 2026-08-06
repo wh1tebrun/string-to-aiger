@@ -47,10 +47,10 @@ cross-backend consistency testing
 
 # Five-Minute Clean-Clone Quickstart
 
-The package requires Python 3.10 or newer and declares no runtime dependencies. While this documentation is being reviewed on its professionalization branch, start from a clean clone as follows:
+The package requires Python 3.10 or newer and declares no runtime dependencies. Start from a clean clone as follows:
 
 ```bash
-git clone --branch codex/professionalization https://github.com/wh1tebrun/string-to-aiger.git
+git clone https://github.com/wh1tebrun/string-to-aiger.git
 cd string-to-aiger
 python3 -m venv .venv
 . .venv/bin/activate
@@ -537,6 +537,18 @@ export AIGSIM=/path/to/aiger/aigsim
 python3 run_all_tests.py
 ```
 
+Run the internal CI profile without a real `aigsim` installation:
+
+```bash
+python3 run_all_tests.py --internal-only
+```
+
+The current manifest contains 29 scripts and 288 explicit `test_*` functions. The internal profile runs 22 scripts and 245 functions; it includes the Bash-based manual fake-simulator regression but excludes the seven real-`aigsim` scripts and their 43 functions. [`.github/workflows/internal-tests.yml`](.github/workflows/internal-tests.yml) installs the package and runs the internal profile on Ubuntu with Python 3.10 and 3.12.
+
+Ordinary push and pull-request CI deliberately omits real external-tool validation. The provisioned full release gate remains authoritative for the real `aigsim` suite, AIGER-tool and Minisat artifacts, and the canonical Docker/rIC3 workflow.
+
+The manual `aigsim` path is fail-closed: each stimulus must end with a final `.` line and LF, simulator execution must exit 0 with empty stderr and well-formed output, ordinary cases must match reference semantics, and deliberately corrupted controls count as successful detections only after clean simulator execution.
+
 Important internal tests include:
 
 ```text
@@ -557,7 +569,11 @@ tests/tests_nfa_prune.py
 tests/tests_nfa_optimize.py
 tests/tests_aiger_validator.py
 tests/tests_aiger_pipeline.py
+tests/tests_manual_aigsim_checks.py
 tests/tests_external_aiger_validator.py
+tests/tests_ric3_result.py
+tests/tests_shell_line_endings.py
+tests/tests_runner.py
 ```
 
 Important external `aigsim` tests include:
@@ -569,6 +585,7 @@ tests/tests_aigsim_product.py
 tests/tests_aigsim_bounded_fuzzer.py
 tests/tests_aigsim_sequential_fuzzer.py
 tests/tests_aigsim_cross_backend.py
+tests/tests_aigsim_negative_detection.py
 ```
 
 The shared setup helper is:
@@ -826,7 +843,7 @@ The detailed committed-evidence index is [`artifacts/README.md`](artifacts/READM
 
 | Category | Evidence strength | Authoritative location and scope |
 | --- | --- | --- |
-| Internal and focused tests | Unit/integration tests | Of the baseline's 263 explicit test functions, 220 were internal or focused regression checks. [`run_all_tests.py`](run_all_tests.py) also invokes the 43 external `aigsim` functions. |
+| Internal and focused tests | Unit/integration tests | The current [manifest](run_all_tests.py) contains 245 internal-profile functions in 22 scripts; the tagged baseline contained 220 such functions. The full current manifest also includes the seven-script, 43-function external `aigsim` profile. |
 | External `aigsim` test suite | External simulation and differential validation | The [full runner](run_all_tests.py) invokes seven `tests/tests_aigsim_*.py` scripts whose 43 functions compare generated files with reference behavior. |
 | Semantic artifact matrix | Committed external-simulation evidence | The [semantic matrix](artifacts/validation/validation_matrix.md) separately records 45 concrete `aigsim` rows; rows and test functions are different units. |
 | Deterministic fuzzing | Reproducible differential testing | The [bounded](tests/tests_aigsim_bounded_fuzzer.py) and [sequential](tests/tests_aigsim_sequential_fuzzer.py) fuzz tests use fixed seeds; passing samples are not exhaustive proof. |
@@ -834,15 +851,15 @@ The detailed committed-evidence index is [`artifacts/README.md`](artifacts/READM
 | Bounded miter/reference checks | SAT-based bounded instance evidence | [Miter counterexamples](artifacts/model_checking/model_checking_counterexamples.md) and [independent reference equivalence](artifacts/reference_equivalence/reference_equivalence.md) constrain inputs to valid bounded encodings. |
 | Sequential checks | Bounded unrolling and protocol tests | [Sequential counterexamples](artifacts/sequential_model_checking/sequential_counterexamples.md) cover fixed-depth instances; [protocol tests](tests/tests_aigsim_sequential.py) exercise valid and invalid traces. |
 | Canonical rIC3 workflow | Selected unbounded reachability instances | [`validation/run_ric3_hwmcc.sh`](validation/run_ric3_hwmcc.sh) checks four generated transition systems. SAT/UNSAT concerns reachability of `accept`, not universal compiler correctness. |
-| Manual checks | Small inspectable external simulations | The [manual matrix](artifacts/manual_aigsim_checks/manual_aigsim_checks.md) records nine concrete checks, including corrupted-output controls. |
+| Manual checks | Small inspectable external simulations | The [manual matrix](artifacts/manual_aigsim_checks/manual_aigsim_checks.md) records nine fail-closed checks: seven expected semantic matches and two detected corrupted-output mismatches. All nine current captures record exit 0, valid execution, and empty stderr. |
 | Companion Isabelle/HOL project | Mathematical proof of a separate Thompson core | The [companion development](https://gitlab.uni-freiburg.de/et130/regex-to-nfa-isabelle.git) proves the five constructor results described below, not refinement of this Python pipeline. |
 | Presentation baseline | Reproducibility/provenance marker | Tag [`presentation-validation-aa072d8`](https://github.com/wh1tebrun/string-to-aiger/tree/presentation-validation-aa072d8) identifies validated commit `aa072d804572c128f4e905b052fb0c2184bd7b0e`. |
 
 ## Validated Baseline and Environment Boundary
 
-At the tagged baseline, the recorded GO gate comprised 263 explicit test functions in 27 scripts, including 43 external `aigsim` tests; a separate 11-case sequential-protocol audit; the committed validation/SAT evidence; four canonical rIC3 cases with results `SAT, UNSAT, SAT, UNSAT`; and two clean-clone demo rehearsals. These counts describe the tagged baseline. The later `codex/professionalization` commits are documentation-only and have not rerun that complete external GO gate; compiler source behavior is unchanged.
+At the tagged baseline, the recorded GO gate comprised 263 explicit test functions in 27 scripts, including 43 external `aigsim` tests; a separate 11-case sequential-protocol audit; the committed validation/SAT evidence; four canonical rIC3 cases with results `SAT, UNSAT, SAT, UNSAT`; and two clean-clone demo rehearsals. These counts describe the tagged baseline. Later professionalization work adds explicit LF file writing, fail-closed manual `aigsim` validation, and internal test/packaging CI; those changes are not part of the tagged snapshot. The final full post-professionalization release gate and rehearsal remain pending.
 
-The core package requires Python 3.10+ and uses only the standard library at runtime. The recorded external gate ran under WSL Ubuntu with Python 3.10.12 and additionally used Bash, AIGER tools/`aigsim`, Minisat, Docker Desktop, and rIC3. Tracked `.sh`, `.aag`, and `.stim` files are forced to LF by `.gitattributes`; full native-Windows support for the external toolchain is not claimed. Exact recorded versions and provenance limitations are in the [artifact index](artifacts/README.md#validated-environment).
+The core package requires Python 3.10+ and uses only the standard library at runtime. The recorded external gate ran under WSL Ubuntu with Python 3.10.12 and additionally used Bash, AIGER tools/`aigsim`, Minisat, Docker Desktop, and rIC3. The central AIGER file-writing pipeline explicitly emits UTF-8 with LF newlines, and representative bounded and sequential outputs were byte-identical across native Windows and WSL. In addition, `.gitattributes` forces tracked `.sh`, `.aag`, and `.stim` files to LF after checkout. Full native-Windows support for the external toolchain is not claimed. Exact recorded versions and provenance limitations are in the [artifact index](artifacts/README.md#validated-environment).
 
 # Formal Verification Scope
 
