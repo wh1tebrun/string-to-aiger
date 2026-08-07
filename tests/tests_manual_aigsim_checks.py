@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import csv
+import html
+import io
 import os
 import re
 import shutil
@@ -12,6 +14,7 @@ import textwrap
 from contextlib import contextmanager
 from pathlib import Path
 from typing import Iterator
+from unittest import mock
 
 
 ROOT_DIR = Path(__file__).resolve().parents[1]
@@ -219,6 +222,25 @@ def shell_case_lines(stdout: str) -> list[str]:
         for line in stdout.splitlines()
         if re.match(r"^MAN[0-9]{3}\s*\|", line)
     ]
+
+
+def generate_manual_artifact_snapshot(root: Path) -> dict[str, bytes]:
+    with patched_generator_root(root):
+        fake_aigsim = write_shell_fake_aigsim(root)
+        environment = {"FAKE_AIGSIM_LOG": str(root / "fake-aigsim-calls.log")}
+
+        with (
+            mock.patch.object(manual, "AIGSIM", fake_aigsim),
+            mock.patch.dict(os.environ, environment),
+        ):
+            manual.main()
+
+        artifact_root = manual.ARTIFACT_ROOT
+        return {
+            path.relative_to(artifact_root).as_posix(): path.read_bytes()
+            for path in sorted(artifact_root.rglob("*"))
+            if path.is_file()
+        }
 
 
 def test_bounded_stimulus_has_exact_lf_terminator() -> None:
@@ -460,6 +482,64 @@ def test_run_case_metadata_records_expected_negative_control_mismatch() -> None:
             assert "stderr:\n\n" in captured
 
 
+def test_manual_artifact_generation_is_safe_and_deterministic() -> None:
+    with (
+        tempfile.TemporaryDirectory() as first_dir,
+        tempfile.TemporaryDirectory() as second_dir,
+    ):
+        first = generate_manual_artifact_snapshot(Path(first_dir))
+        second = generate_manual_artifact_snapshot(Path(second_dir))
+
+    committed_root = ROOT_DIR / "artifacts" / "manual_aigsim_checks"
+    committed_paths = {
+        path.relative_to(committed_root).as_posix()
+        for path in committed_root.rglob("*")
+        if path.is_file()
+    }
+
+    assert first == second
+    assert set(first) == committed_paths
+
+    markdown = first["manual_aigsim_checks.md"].decode("utf-8")
+    man004_line = next(
+        line for line in markdown.splitlines() if line.startswith("| MAN004 |")
+    )
+    man004_cells = [cell.strip() for cell in man004_line.strip("|").split("|")]
+
+    assert man004_cells[3] == "&lt;empty&gt; -&gt; end"
+    assert html.unescape(man004_cells[3]) == "<empty> -> end"
+    assert "<empty>" not in man004_line
+    assert "ab\\|bc" in markdown
+    assert manual.clean_markdown("first\nsecond") == "first<br>second"
+    assert markdown.splitlines() == (
+        committed_root / "manual_aigsim_checks.md"
+    ).read_text(encoding="utf-8").splitlines()
+
+    generated_rows = list(
+        csv.DictReader(
+            io.StringIO(first["manual_aigsim_checks.csv"].decode("utf-8"))
+        )
+    )
+    with (committed_root / "manual_aigsim_checks.csv").open(
+        newline="",
+        encoding="utf-8",
+    ) as csv_file:
+        committed_rows = list(csv.DictReader(csv_file))
+
+    assert generated_rows == committed_rows
+    assert [row["case_id"] for row in generated_rows] == [
+        f"MAN{index:03d}" for index in range(1, 10)
+    ]
+    assert generated_rows[3]["word_or_trace"] == "<empty> -> end"
+    assert {
+        row["case_id"] for row in generated_rows
+    } == {
+        line.split("|", 2)[1].strip()
+        for line in markdown.splitlines()
+        if re.match(r"^\| MAN[0-9]{3} \|", line)
+    }
+
+
 def test_shell_demo_passes_all_cases_and_aggregates_failures() -> None:
     bash = shutil.which("bash")
     assert bash is not None, "The shell aggregation test requires bash"
@@ -534,6 +614,7 @@ def run_tests() -> None:
     test_missing_malformed_and_ambiguous_output_fail()
     test_unexpected_ordinary_semantic_mismatch_fails()
     test_run_case_metadata_records_expected_negative_control_mismatch()
+    test_manual_artifact_generation_is_safe_and_deterministic()
     test_shell_demo_passes_all_cases_and_aggregates_failures()
     print("All manual aigsim fail-closed tests passed.")
 

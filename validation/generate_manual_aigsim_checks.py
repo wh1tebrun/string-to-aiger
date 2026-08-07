@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import csv
+import html
 import os
 import re
 import shlex
@@ -371,7 +372,7 @@ def write_csv(path: Path, headers: list[str], rows: list[dict[str, object]]) -> 
 
 
 def clean_markdown(value: object) -> str:
-    text = str(value)
+    text = html.escape(str(value), quote=False)
     text = text.replace("\n", "<br>")
     text = text.replace("|", "\\|")
     return text
