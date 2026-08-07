@@ -175,7 +175,12 @@ def main() -> int:
 
     try:
         if args.input_file is not None:
-            pattern = read_pattern_from_file(args.input_file)
+            try:
+                pattern = read_pattern_from_file(args.input_file)
+            except OSError as error:
+                parser.error(
+                    f"Unable to read input file {args.input_file!r}: {error}"
+                )
         elif args.pattern is not None:
             pattern = args.pattern
         else:
@@ -194,12 +199,17 @@ def main() -> int:
                 intersection_strategy=args.intersection_strategy,
             )
 
-        if args.skip_validation:
-            write_aiger_without_validation(args.output, aiger_text)
-            validation_status = "skipped"
-        else:
-            validate_and_write_aiger(args.output, aiger_text)
-            validation_status = "passed"
+        try:
+            if args.skip_validation:
+                write_aiger_without_validation(args.output, aiger_text)
+                validation_status = "skipped"
+            else:
+                validate_and_write_aiger(args.output, aiger_text)
+                validation_status = "passed"
+        except OSError as error:
+            parser.error(
+                f"Unable to write output file {args.output!r}: {error}"
+            )
 
         run_external_validation = (
             args.external_validation

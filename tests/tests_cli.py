@@ -2,23 +2,48 @@ import os
 import subprocess
 import sys
 import tempfile
+from unittest import mock
+
+import string_to_aiger.cli as cli_module
 
 
 ROOT_DIR = os.path.dirname(os.path.dirname(__file__))
 OUTPUT_DIR = os.path.join(ROOT_DIR, "outputs")
 
 
-def run_cli(args: list[str]) -> subprocess.CompletedProcess:
+def run_cli(
+    args: list[str],
+    entry_point: str = "module",
+) -> subprocess.CompletedProcess:
     env = os.environ.copy()
     env.pop("STRING_TO_AIGER_EXTERNAL_AIGER_VALIDATOR", None)
 
+    if entry_point == "console":
+        executable_name = (
+            "string-to-aiger.exe" if os.name == "nt" else "string-to-aiger"
+        )
+        command = [os.path.join(os.path.dirname(sys.executable), executable_name)]
+    else:
+        command = [sys.executable, "-m", "string_to_aiger"]
+
     return subprocess.run(
-        [sys.executable, "-m", "string_to_aiger"] + args,
+        command + args,
         cwd=ROOT_DIR,
         text=True,
         capture_output=True,
         env=env,
     )
+
+
+def assert_filesystem_error(
+    result: subprocess.CompletedProcess,
+    operation: str,
+    path: str,
+) -> None:
+    assert result.returncode == 2
+    assert result.stdout == ""
+    assert f"Unable to {operation} {path!r}" in result.stderr
+    assert "Traceback" not in result.stderr
 
 
 def write_python_script(temp_dir: str, name: str, body: str) -> str:
@@ -399,7 +424,7 @@ def test_cli_external_validation_fails_with_failing_command():
         assert os.path.exists(output_path)
 
 
-def test_cli_rejects_empty_input_file():
+def test_cli_reports_input_and_output_file_errors():
     with tempfile.TemporaryDirectory() as temp_dir:
         input_path = os.path.join(temp_dir, "empty.txt")
         output_path = os.path.join(temp_dir, "empty.aag")
@@ -416,6 +441,66 @@ def test_cli_rejects_empty_input_file():
 
         assert result.returncode != 0
         assert "Input file is empty" in result.stderr
+
+        missing_path = os.path.join(temp_dir, "missing.txt")
+        missing_args = [
+            "--input-file", missing_path,
+            "--output", output_path,
+        ]
+        module_result = run_cli(missing_args)
+        console_result = run_cli(missing_args, entry_point="console")
+
+        assert_filesystem_error(module_result, "read input file", missing_path)
+        assert console_result.returncode == module_result.returncode
+        assert console_result.stdout == module_result.stdout
+        assert console_result.stderr == module_result.stderr
+
+        input_directory = os.path.join(temp_dir, "input_directory")
+        os.makedirs(input_directory)
+        result = run_cli([
+            "--input-file", input_directory,
+            "--output", output_path,
+        ])
+        assert_filesystem_error(result, "read input file", input_directory)
+
+        output_directory = os.path.join(temp_dir, "output_directory")
+        os.makedirs(output_directory)
+        result = run_cli([
+            "--pattern", "a",
+            "--output", output_directory,
+        ])
+        assert_filesystem_error(result, "write output file", output_directory)
+
+        parent_file = os.path.join(temp_dir, "parent_file")
+        with open(parent_file, "w", encoding="utf-8") as f:
+            f.write("not a directory")
+
+        blocked_output = os.path.join(parent_file, "child.aag")
+        result = run_cli([
+            "--pattern", "a",
+            "--output", blocked_output,
+        ])
+        assert_filesystem_error(result, "write output file", blocked_output)
+
+    unexpected_error = OSError("unexpected compiler failure")
+    with (
+        mock.patch.object(
+            sys,
+            "argv",
+            ["string-to-aiger", "--pattern", "a"],
+        ),
+        mock.patch.object(
+            cli_module,
+            "compile_bounded",
+            side_effect=unexpected_error,
+        ),
+    ):
+        try:
+            cli_module.main()
+        except OSError as error:
+            assert error is unexpected_error
+        else:
+            raise AssertionError("Unexpected compiler OSError was suppressed")
 
 
 def test_cli_requires_pattern_or_input_file():
@@ -457,7 +542,7 @@ def run_tests():
     test_cli_external_validation_passes_with_command()
     test_cli_external_validator_command_implies_external_validation()
     test_cli_external_validation_fails_with_failing_command()
-    test_cli_rejects_empty_input_file()
+    test_cli_reports_input_and_output_file_errors()
     test_cli_requires_pattern_or_input_file()
     test_cli_rejects_pattern_and_input_file_together()
 
