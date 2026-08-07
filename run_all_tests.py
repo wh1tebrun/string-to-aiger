@@ -47,13 +47,14 @@ TEST_MANIFEST = (
     TestSpec(20, "tests/tests_ric3_result.py", INTERNAL_PROFILE),
     TestSpec(21, "tests/tests_shell_line_endings.py", INTERNAL_PROFILE),
     TestSpec(22, "tests/tests_runner.py", INTERNAL_PROFILE),
-    TestSpec(23, "tests/tests_aigsim_bounded.py", EXTERNAL_AIGSIM_PROFILE),
-    TestSpec(24, "tests/tests_aigsim_sequential.py", EXTERNAL_AIGSIM_PROFILE),
-    TestSpec(25, "tests/tests_aigsim_product.py", EXTERNAL_AIGSIM_PROFILE),
-    TestSpec(26, "tests/tests_aigsim_bounded_fuzzer.py", EXTERNAL_AIGSIM_PROFILE),
-    TestSpec(27, "tests/tests_aigsim_sequential_fuzzer.py", EXTERNAL_AIGSIM_PROFILE),
-    TestSpec(28, "tests/tests_aigsim_cross_backend.py", EXTERNAL_AIGSIM_PROFILE),
-    TestSpec(29, "tests/tests_aigsim_negative_detection.py", EXTERNAL_AIGSIM_PROFILE),
+    TestSpec(23, "tests/tests_public_surface.py", INTERNAL_PROFILE),
+    TestSpec(24, "tests/tests_aigsim_bounded.py", EXTERNAL_AIGSIM_PROFILE),
+    TestSpec(25, "tests/tests_aigsim_sequential.py", EXTERNAL_AIGSIM_PROFILE),
+    TestSpec(26, "tests/tests_aigsim_product.py", EXTERNAL_AIGSIM_PROFILE),
+    TestSpec(27, "tests/tests_aigsim_bounded_fuzzer.py", EXTERNAL_AIGSIM_PROFILE),
+    TestSpec(28, "tests/tests_aigsim_sequential_fuzzer.py", EXTERNAL_AIGSIM_PROFILE),
+    TestSpec(29, "tests/tests_aigsim_cross_backend.py", EXTERNAL_AIGSIM_PROFILE),
+    TestSpec(30, "tests/tests_aigsim_negative_detection.py", EXTERNAL_AIGSIM_PROFILE),
 )
 
 

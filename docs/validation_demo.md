@@ -216,7 +216,7 @@ For the CI profile, which does not require real `aigsim`:
 python3 run_all_tests.py --internal-only
 ```
 
-The current full profile reports 29 scripts and 288 explicit test functions. The internal profile reports 22 scripts and 245 functions; it still requires Bash for the manual fake-simulator regression. The [internal workflow](../.github/workflows/internal-tests.yml) runs this profile on Ubuntu with Python 3.10 and 3.12, while the real external-tool checks remain part of the provisioned full release gate.
+The current full profile reports 30 scripts and 303 explicit test functions. The internal profile reports 23 scripts and 260 functions; it still requires Bash for the manual fake-simulator regression. The [internal workflow](../.github/workflows/internal-tests.yml) runs this profile on Ubuntu with Python 3.10 and 3.12, while the real external-tool checks remain part of the provisioned full release gate.
 
 Expected result:
 
