@@ -4,9 +4,11 @@ This is the authoritative index for committed validation evidence. The artifacts
 
 ## Provenance and Scope
 
-The baseline evidence snapshot was validated as part of the annotated tag [`presentation-validation-aa072d8`](https://github.com/wh1tebrun/string-to-aiger/tree/presentation-validation-aa072d8), targeting commit `aa072d804572c128f4e905b052fb0c2184bd7b0e`. The tag remains the historical baseline. Later professionalization work separately adds explicit LF output writing, fail-closed manual-simulation evidence, and test/CI infrastructure; current post-tag evidence must therefore be distinguished from the tagged snapshot until the final release gate is run.
+The [committed artifact data](https://github.com/wh1tebrun/string-to-aiger/tree/presentation-release-2026-08-06/artifacts) indexed here is frozen by the annotated tag [`presentation-release-2026-08-06`](https://github.com/wh1tebrun/string-to-aiger/tree/presentation-release-2026-08-06), targeting commit [`f77c909cd8359a87bc81c0f89aaa813e89abf279`](https://github.com/wh1tebrun/string-to-aiger/commit/f77c909cd8359a87bc81c0f89aaa813e89abf279). That final release includes explicit LF output writing, fail-closed manual-simulation evidence, and test/CI infrastructure, and it passed the completed full release gate with 288 test functions in 29 scripts and the 245-function, 22-script internal profile. Subsequent changes do not alter this immutable tagged snapshot.
 
-The baseline contains 45 semantic-simulation rows, six negative-detection rows, two bounded miter/Minisat rows, two fixed-depth sequential-unroll/Minisat rows, four generated-vs-reference rows, and nine manual rows. These are concrete or bounded checks. They do not establish universal correctness of the executable compiler.
+The earlier annotated tag [`presentation-validation-aa072d8`](https://github.com/wh1tebrun/string-to-aiger/tree/presentation-validation-aa072d8), targeting commit [`aa072d804572c128f4e905b052fb0c2184bd7b0e`](https://github.com/wh1tebrun/string-to-aiger/commit/aa072d804572c128f4e905b052fb0c2184bd7b0e), remains the historical pre-professionalization validated baseline.
+
+The final-release artifact snapshot contains 45 semantic-simulation rows, six negative-detection rows, two bounded miter/Minisat rows, two fixed-depth sequential-unroll/Minisat rows, four generated-vs-reference rows, and nine manual rows. These are concrete or bounded checks. They do not establish universal correctness of the executable compiler.
 
 ## Evidence Index
 
