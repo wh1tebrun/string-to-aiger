@@ -1,4 +1,5 @@
 import os
+import shlex
 import sys
 import tempfile
 
@@ -19,8 +20,8 @@ def compile_sample_aiger() -> str:
     return compile_expr_to_aiger(expr)
 
 
-def write_sample_aiger(temp_dir: str) -> str:
-    path = os.path.join(temp_dir, "sample.aag")
+def write_sample_aiger(temp_dir: str, name: str = "sample.aag") -> str:
+    path = os.path.join(temp_dir, name)
 
     with open(path, "w", encoding="utf-8") as f:
         f.write(compile_sample_aiger())
@@ -166,6 +167,56 @@ def test_validate_supports_path_placeholder():
         assert result.passed is True
 
 
+def test_validate_quoted_placeholder_preserves_path_with_spaces():
+    with tempfile.TemporaryDirectory(prefix="external validator ") as temp_dir:
+        generated_dir = os.path.join(temp_dir, "generated files")
+        os.makedirs(generated_dir)
+        aiger_path = write_sample_aiger(generated_dir, "sample output.aag")
+        expected_arguments = [
+            "--before",
+            "first",
+            "--input",
+            aiger_path,
+            "--after",
+            "last",
+        ]
+        script_path = write_python_script(
+            temp_dir,
+            "quoted placeholder validator.py",
+            "\n".join([
+                "import sys",
+                f"expected = {expected_arguments!r}",
+                "assert sys.argv[1:] == expected, (sys.argv[1:], expected)",
+                f"with open({aiger_path!r}, 'r', encoding='utf-8') as f:",
+                "    text = f.read()",
+                "assert text.startswith('aag ')",
+                "print('quoted placeholder stdout')",
+                "print('quoted placeholder stderr', file=sys.stderr)",
+                "raise SystemExit(0)",
+            ]),
+        )
+        command_template = (
+            f"{shlex.quote(sys.executable)} {shlex.quote(script_path)} "
+            '--before first --input "{path}" --after last'
+        )
+
+        result = validate_aiger_with_external_tool(
+            aiger_path=aiger_path,
+            command=command_template,
+        )
+
+        assert " " in aiger_path
+        assert result.command == (
+            sys.executable,
+            script_path,
+            *expected_arguments,
+        )
+        assert result.passed is True
+        assert result.returncode == 0
+        assert result.stdout == "quoted placeholder stdout\n"
+        assert result.stderr == "quoted placeholder stderr\n"
+
+
 def test_require_external_validation_allows_skipped_validation():
     with tempfile.TemporaryDirectory() as temp_dir:
         aiger_path = write_sample_aiger(temp_dir)
@@ -208,6 +259,7 @@ def run_tests():
     test_validate_passes_when_external_command_returns_zero()
     test_validate_fails_when_external_command_returns_nonzero()
     test_validate_supports_path_placeholder()
+    test_validate_quoted_placeholder_preserves_path_with_spaces()
     test_require_external_validation_allows_skipped_validation()
     test_require_external_validation_raises_on_failure()
 
