@@ -1,5 +1,10 @@
 # Meeting speech
 
+> **Historical snapshot — Milestone 3 meeting (June 2026).** This document was prepared for an earlier project meeting and is retained as project-process history.
+> Commands, counts, results, limitations, and plans below reflect that point in time; they are not current release claims.
+>
+> For maintained information, see the current [README](../README.md), [testing guide](testing.md), [validation guide](validation_demo.md), [artifact index](../artifacts/README.md), [command-line interface](../README.md#command-line-interface), [validation scripts](../validation/), and [formal-verification scope](../README.md#formal-verification-scope). The immutable final release is [`presentation-release-2026-08-06`](https://github.com/wh1tebrun/string-to-aiger/tree/presentation-release-2026-08-06).
+
 This document contains a short speech plan for presenting the current status of the project.
 
 The focus is:
