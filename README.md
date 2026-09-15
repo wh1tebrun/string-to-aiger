@@ -545,7 +545,7 @@ Run the internal CI profile without a real `aigsim` installation:
 python3 run_all_tests.py --internal-only
 ```
 
-The current manifest contains 30 scripts and 304 explicit `test_*` functions. The internal profile runs 23 scripts and 261 functions; it includes the Bash-based manual fake-simulator regression but excludes the seven real-`aigsim` scripts and their 43 functions. [`.github/workflows/internal-tests.yml`](.github/workflows/internal-tests.yml) installs the package and runs the internal profile on Ubuntu with Python 3.10 and 3.12.
+The current manifest contains 31 scripts and 311 explicit `test_*` functions. The internal profile runs 24 scripts and 267 functions; it includes the Bash-based manual fake-simulator regression but excludes the seven real-`aigsim` scripts and their 44 functions. [`.github/workflows/internal-tests.yml`](.github/workflows/internal-tests.yml) installs the package and runs the internal profile on Ubuntu with Python 3.10 and 3.12.
 
 Ordinary push and pull-request CI deliberately omits real external-tool validation. The provisioned full release gate remains authoritative for the real `aigsim` suite, AIGER-tool and Minisat artifacts, and the canonical Docker/rIC3 workflow.
 
@@ -845,8 +845,8 @@ The detailed committed-evidence index is [`artifacts/README.md`](artifacts/READM
 
 | Category | Evidence strength | Authoritative location and scope |
 | --- | --- | --- |
-| Internal and focused tests | Unit/integration tests | The current [manifest](run_all_tests.py) contains 261 internal-profile functions in 23 scripts; the tagged baseline contained 220 such functions. The full current manifest also includes the seven-script, 43-function external `aigsim` profile. |
-| External `aigsim` test suite | External simulation and differential validation | The [full runner](run_all_tests.py) invokes seven `tests/tests_aigsim_*.py` scripts whose 43 functions compare generated files with reference behavior. |
+| Internal and focused tests | Unit/integration tests | The current [manifest](run_all_tests.py) contains 267 internal-profile functions in 24 scripts; the tagged baseline contained 220 such functions. The full current manifest also includes the seven-script, 44-function external `aigsim` profile. |
+| External `aigsim` test suite | External simulation and differential validation | The [full runner](run_all_tests.py) invokes seven `tests/tests_aigsim_*.py` scripts whose 44 functions compare generated files with reference behavior. |
 | Semantic artifact matrix | Committed external-simulation evidence | The [semantic matrix](artifacts/validation/validation_matrix.md) separately records 45 concrete `aigsim` rows; rows and test functions are different units. |
 | Deterministic fuzzing | Reproducible differential testing | The [bounded](tests/tests_aigsim_bounded_fuzzer.py) and [sequential](tests/tests_aigsim_sequential_fuzzer.py) fuzz tests use fixed seeds; passing samples are not exhaustive proof. |
 | Negative controls | Failure-sensitivity evidence | The [negative-detection matrix](artifacts/validation/negative_detection_matrix.md) records six deliberately corrupted circuits whose mismatches were detected. |

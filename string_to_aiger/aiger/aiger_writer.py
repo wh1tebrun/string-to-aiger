@@ -77,7 +77,8 @@ class AigerWriter:
             neg_right = self.invert(right_lit)
 
             and_lit = self.new_literal()
-            self.and_literals[node_id] = and_lit
+            # Cache the semantic OR result (possibly odd), not its positive AND.
+            self.and_literals[node_id] = self.invert(and_lit)
             self.ands.append((and_lit, neg_left, neg_right))
 
             return self.invert(and_lit)

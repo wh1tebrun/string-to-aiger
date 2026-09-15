@@ -1,7 +1,10 @@
 import re
 import subprocess
 from pathlib import Path
+from tempfile import TemporaryDirectory
 
+from string_to_aiger.aiger.aiger_writer import AigerWriter
+from string_to_aiger.netlist.netlist import AndGate, Input, OrGate
 from string_to_aiger.regex.regex_ast import Intersect, Regex
 from string_to_aiger.regex.regex_parser import parse_regex
 from string_to_aiger.nfa.nfa_builder import build_nfa
@@ -191,6 +194,43 @@ def test_aigsim_bounded_intersection_abstar_subset() -> None:
     )
 
 
+def test_aigsim_shared_or_netlist() -> None:
+    aigsim = require_aigsim()
+    # Construct the shared node directly: NetlistBuilder would duplicate it.
+    nodes = {
+        1: Input("x"), 2: Input("y"),
+        3: OrGate(1, 2), 4: AndGate(3, 3),
+    }
+    text = AigerWriter(nodes, 4).write()
+    assert text.splitlines()[0] == "aag 4 2 0 1 2"
+    assert parse_aiger_input_names(text) == ["x", "y"]
+    vectors = ["00", "01", "10", "11"]
+    with TemporaryDirectory(prefix="aiger-shared-or-") as directory:
+        aag_path = Path(directory) / "shared.aag"
+        stim_path = Path(directory) / "shared.stim"
+        aag_path.write_bytes(text.encode("utf-8"))
+        stim_path.write_bytes(("\n".join(vectors) + "\n.\n").encode("ascii"))
+        result = subprocess.run(
+            [aigsim, str(aag_path), str(stim_path)],
+            check=False, text=True, capture_output=True, timeout=30,
+        )
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert result.stderr == "", result.stderr
+    rows = []
+    notices = []
+    for line in result.stdout.splitlines():
+        if re.fullmatch(r"Trace is a witness for: \{(?: b0)? \}", line):
+            notices.append(line)
+            continue
+        match = re.fullmatch(r"\s*([01]{2})\s+([01])\s*", line)
+        assert match is not None and not notices, f"Unexpected aigsim row: {line!r}"
+        rows.append((match.group(1), int(match.group(2))))
+    assert [vector for vector, _output in rows] == vectors, result.stdout
+    actual = [output for _vector, output in rows]
+    assert actual == [0, 1, 1, 1], f"Shared-OR truth-table mismatch: {actual}"
+    assert notices in ([], ["Trace is a witness for: { b0 }"]), result.stdout
+
+
 def run_tests() -> None:
     test_aigsim_bounded_astar()
     test_aigsim_bounded_abstar()
@@ -203,6 +243,7 @@ def run_tests() -> None:
     test_aigsim_bounded_intersection_astar()
     test_aigsim_bounded_intersection_empty_except_epsilon()
     test_aigsim_bounded_intersection_abstar_subset()
+    test_aigsim_shared_or_netlist()
     print("All aigsim bounded semantic tests passed.")
 
 
